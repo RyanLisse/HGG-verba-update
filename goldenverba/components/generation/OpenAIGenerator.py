@@ -83,12 +83,19 @@ class OpenAIGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ):
         system_message = config.get("System Message").value
-        model = config.get("Model", {"value": "gpt-4o"}).value
-        use_responses = config.get("Use Responses API", {"value": True}).value
-        reasoning_effort = config.get("Reasoning Effort", {"value": "none"}).value
+        model_cfg = config.get("Model")
+        model = getattr(model_cfg, "value", (model_cfg or {}).get("value", "gpt-4o"))
+        use_responses_cfg = config.get("Use Responses API")
+        use_responses = getattr(
+            use_responses_cfg, "value", (use_responses_cfg or {}).get("value", True)
+        )
+        reasoning_cfg = config.get("Reasoning Effort")
+        reasoning_effort = getattr(
+            reasoning_cfg, "value", (reasoning_cfg or {}).get("value", "none")
+        )
 
         openai_key = get_environment(
             config, "API Key", "OPENAI_API_KEY", "No OpenAI API Key found"
@@ -225,7 +232,7 @@ class OpenAIGenerator(Generator):
                         yield {"message": "", "finish_reason": choice["finish_reason"]}
 
     def prepare_messages(
-        self, query: str, context: str, conversation: list[dict], system_message: str
+        self, query: str, context: str, conversation: list[dict] | None, system_message: str
     ) -> list[dict]:
         messages = [
             {
@@ -234,8 +241,12 @@ class OpenAIGenerator(Generator):
             }
         ]
 
-        for message in conversation:
-            messages.append({"role": message.type, "content": message.content})
+        for message in (conversation or []):
+            # Support both dicts and simple objects
+            role = message.get("type") if isinstance(message, dict) else getattr(message, "type", None)
+            content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+            if role and content is not None:
+                messages.append({"role": role, "content": content})
 
         messages.append(
             {
@@ -251,8 +262,9 @@ class OpenAIGenerator(Generator):
         default_models = [
             "gpt-5.1",
             "gpt-5.1-mini",
-            "gpt-4o",
+            "gpt-5",
             "gpt-4.1",
+            "gpt-4o",
             "gpt-3.5-turbo",
         ]
         try:
@@ -262,13 +274,15 @@ class OpenAIGenerator(Generator):
             import requests
 
             headers = {"Authorization": f"Bearer {token}"}
-            response = requests.get(f"{url}/models", headers=headers)
+            response = requests.get(f"{url}/models", headers=headers, timeout=10)
             response.raise_for_status()
             models = [
                 model["id"]
                 for model in response.json()["data"]
                 if "embedding" not in model["id"]
             ]
+            if not models:
+                return default_models
             # Place GPT‑5 models first if present
             priority = {
                 "gpt-5.1": 0,
