@@ -35,6 +35,14 @@ import {
 import InfoComponent from "../Navigation/InfoComponent";
 import ChatConfig from "./ChatConfig";
 import ChatMessage from "./ChatMessage";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@/components/ai-elements/conversation";
+import { Actions, Action } from "@/components/ai-elements/actions";
+import { logTrace } from "@/app/lib/langsmith";
+import Reasoning from "@/components/ai-elements/reasoning";
 
 interface ChatInterfaceProps {
   credentials: Credentials;
@@ -74,6 +82,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   >("DONE");
 
   const [previewText, setPreviewText] = useState("");
+  const [reasoningText, setReasoningText] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketOnline, setSocketOnline] = useState(false);
   const [reconnect, setReconnect] = useState(false);
@@ -139,7 +148,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     localSocket.onmessage = (event) => {
-      let data;
+      let data: any;
 
       if (!isFetching.current) {
         setPreviewText("");
@@ -154,6 +163,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       const newMessageContent = data.message;
+      if (data.reasoning) {
+        setReasoningText((prev) => prev + data.reasoning);
+      }
       setPreviewText((prev) => prev + newMessageContent);
 
       if (data.finish_reason === "stop") {
@@ -238,10 +250,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     isFetching.current = true;
     setCurrentSuggestions([]);
     setFetchingStatus("CHUNKS");
+    setReasoningText("");
     setMessages((prev) => [...prev, { type: "user", content: sendInput }]);
 
     try {
       addStatusMessage("Sending query...", "INFO");
+      // Optional LangSmith trace (frontend-only). No-op if not configured.
+      logTrace("user_message", { message: sendInput }).catch(() => {});
       const data = await sendUserQuery(
         sendInput,
         RAGConfig,
@@ -254,6 +269,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         handleErrorResponse(data ? data.error : "No data received");
       } else {
         handleSuccessResponse(data, sendInput);
+        // Log retrieval metadata if LangSmith is enabled
+        logTrace("retrieval", { query: sendInput }, { meta: data }).catch(
+          () => {}
+        );
       }
     } catch (error) {
       handleErrorResponse("Failed to fetch from API");
@@ -516,44 +535,75 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
           </div>
         )}
-        <div
-          className={`${selectedSetting === "Chat" ? "flex flex-col gap-3 p-4" : "hidden"}`}
-        >
-          <div className="flex w-full justify-start items-center text-text-alt-verba gap-2">
-            {currentDatacount === 0 && <BiError size={15} />}
-            {currentDatacount === 0 && (
-              <p className="text-text-alt-verba text-sm items-center flex">{`${currentDatacount} documents embedded by ${currentEmbedding}`}</p>
-            )}
+        <div className={`${selectedSetting === "Chat" ? "" : "hidden"}`}>
+          <Conversation className="flex flex-col gap-3 p-4">
+            <ConversationContent>
+              <div className="flex w-full justify-start items-center text-text-alt-verba gap-2">
+                {currentDatacount === 0 && <BiError size={15} />}
+                {currentDatacount === 0 && (
+                  <p className="text-text-alt-verba text-sm items-center flex">{`${currentDatacount} documents embedded by ${currentEmbedding}`}</p>
+                )}
+              </div>
+              <div className="py-1">
+                <Reasoning text={reasoningText} />
+              </div>
+              {messages.map((message, index) => (
+                <div
+                  key={"Message_" + index}
+                  className={`${message.type === "user" ? "text-right" : ""}`}
+                >
+                  <ChatMessage
+                    message={message}
+                    message_index={index}
+                    selectedTheme={selectedTheme}
+                    selectedDocument={selectedDocumentScore}
+                    setSelectedDocumentScore={setSelectedDocumentScore}
+                    setSelectedDocument={setSelectedDocument}
+                    setSelectedChunkScore={setSelectedChunkScore}
+                  />
+                </div>
+              ))}
+              {previewText && (
+                <ChatMessage
+                  message={{ type: "system", content: previewText, cached: false }}
+                  message_index={-1}
+                  selectedTheme={selectedTheme}
+                  selectedDocument={selectedDocumentScore}
+                  setSelectedDocumentScore={setSelectedDocumentScore}
+                  setSelectedDocument={setSelectedDocument}
+                  setSelectedChunkScore={setSelectedChunkScore}
+                />
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
+          <div className="px-4 pb-2">
+            <Actions>
+              <Action
+                label="Copy"
+                tooltip="Copy last response"
+                onClick={() => {
+                  const last = [...messages]
+                    .reverse()
+                    .find((m) => m.type !== "user");
+                  if (last && typeof last.content === "string") {
+                    navigator.clipboard.writeText(last.content);
+                  }
+                }}
+              >
+                ⧉
+              </Action>
+              <Action
+                label="Clear"
+                tooltip="Clear conversation"
+                onClick={() => setMessages(messages.slice(0, 1))}
+              >
+                ✕
+              </Action>
+            </Actions>
           </div>
-          {messages.map((message, index) => (
-            <div
-              key={"Message_" + index}
-              className={`${message.type === "user" ? "text-right" : ""}`}
-            >
-              <ChatMessage
-                message={message}
-                message_index={index}
-                selectedTheme={selectedTheme}
-                selectedDocument={selectedDocumentScore}
-                setSelectedDocumentScore={setSelectedDocumentScore}
-                setSelectedDocument={setSelectedDocument}
-                setSelectedChunkScore={setSelectedChunkScore}
-              />
-            </div>
-          ))}
-          {previewText && (
-            <ChatMessage
-              message={{ type: "system", content: previewText, cached: false }}
-              message_index={-1}
-              selectedTheme={selectedTheme}
-              selectedDocument={selectedDocumentScore}
-              setSelectedDocumentScore={setSelectedDocumentScore}
-              setSelectedDocument={setSelectedDocument}
-              setSelectedChunkScore={setSelectedChunkScore}
-            />
-          )}
           {isFetching.current && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 px-4">
               <div className="flex items-center gap-3">
                 <span className="text-text-alt-verba loading loading-dots loading-md"></span>
                 <p className="text-text-alt-verba">
