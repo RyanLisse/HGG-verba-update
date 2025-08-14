@@ -4,7 +4,7 @@ setup(
     name="goldenverba",
     version="2.1.3",
     packages=find_packages(),
-    python_requires=">=3.10.0,<3.13.0",
+    python_requires=">=3.10.0,<3.15.0",
     entry_points={
         "console_scripts": [
             "verba=goldenverba.server.cli:cli",

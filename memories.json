@@ -1,0 +1,60 @@
+{
+  "memories": [
+    {
+      "id": "mem_1755192498044_1zpzw21da",
+      "content": "Frontend is configured to run on port 2025 via package.json dev script. Package migration to pnpm is complete with all latest versions installed. Need to configure backend to coordinate with frontend on port 2025.",
+      "type": "general",
+      "tags": [
+        "general",
+        "verba",
+        "port-config",
+        "backend",
+        "frontend"
+      ],
+      "timestamp": "2025-08-14T17:28:18.044Z",
+      "context": "Continuing from previous session - migrating to pnpm and updating port configuration",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-14T17:28:18.044Z",
+      "lastVerified": "2025-08-14T17:28:18.044Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1755192687023_sbiglq98d",
+      "content": "Successfully migrated Verba application to pnpm and updated all packages to latest versions. Frontend runs on port 2025, backend on port 8000. Both services started successfully. Some warnings about tiktoken and Ollama connection are normal in development.",
+      "type": "general",
+      "tags": [
+        "general",
+        "verba",
+        "pnpm",
+        "migration",
+        "success",
+        "ports"
+      ],
+      "timestamp": "2025-08-14T17:31:27.023Z",
+      "context": "Package migration and port configuration complete",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-14T17:31:27.023Z",
+      "lastVerified": "2025-08-14T17:31:27.023Z",
+      "status": "fresh"
+    },
+    {
+      "id": "mem_1755192754681_92c8q55n2",
+      "content": "Starting Tailwind v4 migration following official upgrade guide. Need to run codemod, update CSS variables with @theme inline, replace tailwindcss-animate with tw-animate-css, update utility classes, and handle forwardRef patterns.",
+      "type": "general",
+      "tags": [
+        "general",
+        "tailwind",
+        "v4",
+        "migration",
+        "upgrade"
+      ],
+      "timestamp": "2025-08-14T17:32:34.681Z",
+      "context": "Tailwind v4 migration task",
+      "accessCount": 0,
+      "lastAccessed": "2025-08-14T17:32:34.681Z",
+      "lastVerified": "2025-08-14T17:32:34.681Z",
+      "status": "fresh"
+    }
+  ],
+  "lastUpdated": "2025-08-14T17:32:34.681Z"
+}
