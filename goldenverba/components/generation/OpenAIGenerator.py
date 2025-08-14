@@ -150,7 +150,22 @@ class OpenAIGenerator(Generator):
                             # Handle Responses API event types
                             event_type = json_line.get("type")
                             if event_type == "response.output_text.delta" and "delta" in json_line:
-                                yield {"message": json_line["delta"], "finish_reason": None}
+                                yield {
+                                    "message": json_line["delta"],
+                                    "finish_reason": None,
+                                }
+                            # Reasoning streams (best-effort across variants)
+                            elif event_type in (
+                                "response.reasoning.delta",
+                                "response.reasoning_output_text.delta",
+                                "reasoning.output_text.delta",
+                            ) and "delta" in json_line:
+                                # Emit empty assistant text delta but include reasoning delta
+                                yield {
+                                    "message": "",
+                                    "finish_reason": None,
+                                    "reasoning": json_line.get("delta", ""),
+                                }
                             elif event_type in (
                                 "response.completed",
                                 "response.error",

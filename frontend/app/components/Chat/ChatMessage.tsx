@@ -14,6 +14,8 @@ import {
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 import VerbaButton from "../Navigation/VerbaButton";
+import { Actions, Action } from "@/components/ai-elements/actions";
+import { logFeedback } from "@/app/lib/langsmith";
 
 import { Theme } from "@/app/types";
 
@@ -83,6 +85,26 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             >
               {message.content}
             </ReactMarkdown>
+          )}
+          {message.type === "system" && (
+            <div className="pt-2">
+              <Actions>
+                <Action
+                  label="Good"
+                  tooltip="Thumbs up"
+                  onClick={() => logFeedback('message', 'up', { index: message_index })}
+                >
+                  👍
+                </Action>
+                <Action
+                  label="Bad"
+                  tooltip="Thumbs down"
+                  onClick={() => logFeedback('message', 'down', { index: message_index })}
+                >
+                  👎
+                </Action>
+              </Actions>
+            </div>
           )}
           {message.type === "user" && (
             <div className="whitespace-pre-wrap">{message.content}</div>
