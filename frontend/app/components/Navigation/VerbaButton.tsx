@@ -2,11 +2,14 @@
 
 import React from "react";
 import { FaStar } from "react-icons/fa";
+import { Button } from "@/app/components/ui/button";
+import { cn } from "@/app/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface VerbaButtonProps {
   title?: string;
   Icon?: typeof FaStar;
-  onClick?: (...args: any[]) => void; // Updated to accept any number of arguments
+  onClick?: (...args: any[]) => void;
   onMouseEnter?: (...args: any[]) => void;
   onMouseLeave?: (...args: any[]) => void;
   disabled?: boolean;
@@ -21,7 +24,7 @@ interface VerbaButtonProps {
   loading?: boolean;
   text_size?: string;
   icon_size?: number;
-  onClickParams?: any[]; // New prop to pass additional parameters
+  onClickParams?: any[];
 }
 
 const VerbaButton: React.FC<VerbaButtonProps> = ({
@@ -44,32 +47,46 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
   circle = false,
   onClickParams = [],
 }) => {
+  const getVariant = () => {
+    if (selected) {
+      if (selected_color.includes("warning")) return "destructive";
+      if (selected_color.includes("primary")) return "default";
+      if (selected_color.includes("secondary")) return "secondary";
+      return "default";
+    }
+    return "outline";
+  };
+
   return (
-    <button
+    <Button
       type={type}
       key={key}
-      className={
-        className +
-        ` p-3 transition-all active:scale-95 scale-100 duration-300 flex gap-1 items-center justify-center ${circle ? "rounded-full" : "rounded-lg"} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba text-text-alt-verba-button"} `
-      }
+      variant={getVariant()}
+      className={cn(
+        "p-3 transition-all active:scale-95 scale-100 duration-300 flex gap-1 items-center justify-center",
+        circle ? "rounded-full" : "rounded-lg",
+        selected && selected_color && selected_text_color,
+        !selected && "bg-button-verba text-text-alt-verba-button hover:bg-button-hover-verba hover:text-text-verba-button",
+        className
+      )}
       onClick={(e) => onClick(e, ...onClickParams)}
-      disabled={disabled}
+      disabled={disabled || loading}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {loading ? (
-        <span className="text-text-verba-button loading loading-spinner loading-xs"></span>
+        <Loader2 className="size-4 animate-spin" />
       ) : (
         <>
           {Icon && <Icon size={icon_size} className="w-[20px]" />}
           {title && (
-            <p title={title} className={text_size + " " + text_class_name}>
+            <span title={title} className={cn(text_size, text_class_name)}>
               {title}
-            </p>
+            </span>
           )}
         </>
       )}
-    </button>
+    </Button>
   );
 };
 

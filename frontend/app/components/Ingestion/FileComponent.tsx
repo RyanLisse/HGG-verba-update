@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { FileData, FileMap, statusTextMap } from "@/app/types";
 import { FaTrash } from "react-icons/fa";
 import { FaCheckCircle } from "react-icons/fa";
@@ -25,13 +25,10 @@ const FileComponent: React.FC<FileComponentProps> = ({
   selectedFileData,
   setSelectedFileData,
 }) => {
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const openDeleteModal = () => {
-    const modal = document.getElementById(
-      "remove_file_" + fileMap[fileData.fileID].filename
-    );
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+    setDeleteModalOpen(true);
   };
 
   return (
@@ -98,14 +95,13 @@ const FileComponent: React.FC<FileComponentProps> = ({
       />
 
       <UserModalComponent
-        modal_id={"remove_file_" + fileMap[fileData.fileID].filename}
-        title={"Remove File"}
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        title="Remove File"
         text={
           fileMap[fileData.fileID].isURL
             ? "Do you want to remove the URL?"
-            : "Do you want to remove " +
-              fileMap[fileData.fileID].filename +
-              " from the selection?"
+            : `Do you want to remove ${fileMap[fileData.fileID].filename} from the selection?`
         }
         triggerString="Delete"
         triggerValue={fileMap[fileData.fileID].fileID}

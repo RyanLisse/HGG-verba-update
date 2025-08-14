@@ -45,6 +45,8 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   const [triggerSearch, setTriggerSearch] = useState(false);
 
   const [isFetching, setIsFetching] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<{ uuid: string; title: string } | null>(null);
 
   const nextPage = () => {
     if (!documents) {
@@ -147,11 +149,9 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     setSelectedLabels((prev) => prev.filter((label) => label !== l));
   };
 
-  const openDeleteModal = (id: string) => {
-    const modal = document.getElementById(id);
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+  const openDeleteModal = (document: DocumentPreview) => {
+    setDocumentToDelete({ uuid: document.uuid, title: document.title });
+    setDeleteModalOpen(true);
   };
 
   return (
@@ -277,23 +277,24 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                       selected_color="bg-warning-verba"
                       className="max-w-min"
                       key={document.title + index + "delete"}
-                      onClick={() => {
-                        openDeleteModal("remove_document" + document.uuid);
-                      }}
+                      onClick={() => openDeleteModal(document)}
                     />
                   )}
                 </div>
-                <UserModalComponent
-                  modal_id={"remove_document" + document.uuid}
-                  title={"Remove Document"}
-                  text={"Do you want to remove " + document.title + "?"}
-                  triggerString="Delete"
-                  triggerValue={document.uuid}
-                  triggerAccept={handleDeleteDocument}
-                />
               </div>
             ))}{" "}
         </div>
+        {documentToDelete && (
+          <UserModalComponent
+            open={deleteModalOpen}
+            onOpenChange={setDeleteModalOpen}
+            title="Remove Document"
+            text={`Do you want to remove ${documentToDelete.title}?`}
+            triggerString="Delete"
+            triggerValue={documentToDelete.uuid}
+            triggerAccept={handleDeleteDocument}
+          />
+        )}
       </div>
 
       <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-4 items-center justify-center h-min w-full">

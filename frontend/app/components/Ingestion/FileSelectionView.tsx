@@ -10,7 +10,12 @@ import { GoFileDirectoryFill } from "react-icons/go";
 import { TbPlugConnected } from "react-icons/tb";
 import { IoMdArrowDropdown } from "react-icons/io";
 
-import { closeOnClick } from "@/app/util";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 
 import UserModalComponent from "../Navigation/UserModal";
 
@@ -50,6 +55,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
   importAll,
 }) => {
   const ref = React.useRef<HTMLInputElement>(null);
+  const [deleteAllModalOpen, setDeleteAllModalOpen] = useState(false);
 
   useEffect(() => {
     if (ref.current !== null) {
@@ -59,10 +65,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
   }, [ref]);
 
   const openDeleteModal = () => {
-    const modal = document.getElementById("remove_all_files");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+    setDeleteAllModalOpen(true);
   };
 
   const handleDeleteFile = (filename: string | null) => {
@@ -90,300 +93,288 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
     null
   );
 
-  const handleUploadFiles = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    isDirectory: boolean
+  const handleUploadFiles = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    isDir: boolean
   ) => {
-    if (event.target.files && RAGConfig) {
-      const files = event.target.files;
-      const newFileMap: FileMap = { ...fileMap };
-      const selectedReader = isDirectory
-        ? selectedDirReader
-        : selectedFileReader;
-
-      addStatusMessage("Added new files", "SUCCESS");
-
+    const files = e.target.files;
+    if (files && RAGConfig) {
+      const newFileMap = { ...fileMap };
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const newRAGConfig: RAGConfig = JSON.parse(JSON.stringify(RAGConfig));
-        if (selectedReader) {
-          newRAGConfig["Reader"].selected = selectedReader;
+        const fileID = Date.now() + "_" + file.name;
+        
+        // Skip hidden files and system files
+        if (file.name.startsWith(".")) continue;
+        
+        let selectedReader = isDir ? selectedDirReader : selectedFileReader;
+        
+        if (!selectedReader) {
+          // Auto-detect reader based on file extension
+          const extension = file.name.split(".").pop()?.toLowerCase();
+          const readers = Object.entries(RAGConfig["Reader"].components);
+          
+          for (const [key, component] of readers) {
+            if (component.type !== "URL" && component.config?.extensions?.value?.includes(extension)) {
+              selectedReader = component.name;
+              break;
+            }
+          }
+          
+          if (!selectedReader) {
+            selectedReader = RAGConfig["Reader"].selected;
+          }
         }
-        const filename = file.name;
-        let fileID = file.name;
-
-        // Check if the fileID already exists in the map
-        if (fileID in newFileMap) {
-          // If it exists, append a timestamp to make it unique
-          const timestamp = Date.now();
-          fileID = `${fileID}_${timestamp}`;
-        }
-
-        const extension = file.name.split(".").pop() || "";
-        const fileContent = await readFileContent(file);
-
+        
         newFileMap[fileID] = {
-          fileID,
-          filename,
-          extension,
-          status_report: {},
-          source: "",
-          isURL: false,
-          metadata: "",
-          overwrite: false,
-          content: fileContent,
-          labels: ["Document"],
-          rag_config: newRAGConfig,
-          file_size: calculateBytesFromHexString(fileContent),
+          fileID: fileID,
+          filename: file.name,
+          extension: file.name.split(".").pop() || "",
           status: "READY",
+          rag_config: {
+            ...RAGConfig,
+            Reader: {
+              ...RAGConfig["Reader"],
+              selected: selectedReader || RAGConfig["Reader"].selected,
+            },
+          },
+          isURL: false,
+          file: file,
         };
       }
-
+      
       setFileMap(newFileMap);
-      setSelectedFileData(Object.keys(newFileMap)[0]);
-
-      event.target.value = "";
+      addStatusMessage(`Added ${files.length} file(s)`, "SUCCESS");
+      
+      // Reset selected readers
+      setSelectedFileReader(null);
+      setSelectedDirReader(null);
     }
+    
+    // Clear the input
+    e.target.value = "";
   };
 
-  const handleAddURL = (URLReader: string) => {
-    if (RAGConfig) {
-      const newFileMap: FileMap = { ...fileMap };
-      const newRAGConfig: RAGConfig = JSON.parse(JSON.stringify(RAGConfig));
-      newRAGConfig["Reader"].selected = URLReader;
-
-      const now = new Date();
-      const filename = "New " + URLReader + " Job";
-      const fileID = now.toISOString();
-      const extension = "URL";
-
-      addStatusMessage("Added new URL Job", "SUCCESS");
-
+  const handleAddURL = (readerName: string) => {
+    const url = prompt("Enter URL:");
+    if (url && RAGConfig) {
+      const fileID = Date.now() + "_url";
+      const newFileMap = { ...fileMap };
+      
       newFileMap[fileID] = {
-        fileID,
-        filename,
-        metadata: "",
-        status_report: {},
-        extension,
-        isURL: true,
-        source: "",
-        overwrite: false,
-        content: "",
-        labels: ["Document"],
-        rag_config: newRAGConfig,
-        file_size: 0,
+        fileID: fileID,
+        filename: url,
+        extension: "url",
         status: "READY",
+        rag_config: {
+          ...RAGConfig,
+          Reader: {
+            ...RAGConfig["Reader"],
+            selected: readerName,
+          },
+        },
+        isURL: true,
       };
-
+      
       setFileMap(newFileMap);
-      setSelectedFileData(fileID);
+      addStatusMessage("Added URL", "SUCCESS");
     }
   };
 
-  function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    let binary = "";
-    const bytes = new Uint8Array(buffer);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary); // Encode the binary string to base64
-  }
-
-  function readFileContent(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const arrayBuffer = reader.result as ArrayBuffer;
-        const content = arrayBufferToBase64(arrayBuffer);
-        resolve(content); // Resolve with the base64 content
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  const calculateBytesFromHexString = (hexString: string): number => {
-    // Remove any spaces from the hex string
-    const cleanedHexString = hexString.replace(/\s+/g, "");
-
-    // Ensure the string length is even (two characters per byte)
-    if (cleanedHexString.length % 2 !== 0) {
-      throw new Error("Invalid hex string length.");
-    }
-
-    // Each byte is represented by two hex characters
-    const bytes = cleanedHexString.length / 2;
-    return bytes;
-  };
+  const fileCount = Object.keys(fileMap).length;
+  const readyCount = Object.values(fileMap).filter(f => f.status === "READY").length;
+  const processingCount = Object.values(fileMap).filter(
+    f => f.status !== "READY" && f.status !== "DONE" && f.status !== "ERROR"
+  ).length;
+  const doneCount = Object.values(fileMap).filter(f => f.status === "DONE").length;
+  const errorCount = Object.values(fileMap).filter(f => f.status === "ERROR").length;
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      {/* FileSelection Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-end lg:justify-between h-min w-full">
-        <div className="hidden lg:flex gap-2 justify-start ">
+    <div className="flex flex-col gap-4 w-full">
+      {/* Header */}
+      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-4 items-center justify-between">
+        <div className="hidden lg:flex justify-start">
           <InfoComponent
             tooltip_text="Upload your data through this interface into Verba. You can select individual files, directories or add URL to fetch data from."
             display_text="File Selection"
           />
         </div>
         <div className="flex gap-3 justify-center lg:justify-end">
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+          {/* Files Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <VerbaButton
                 title="Files"
                 Icon={IoMdAddCircle}
-                onClick={() => document.getElementById("files_upload")?.click()}
               />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"File_" + component.name + key}
                       onClick={() => {
                         setSelectedFileReader(component.name);
                         document.getElementById("files_upload")?.click();
-                        closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <input
-            id={"files_upload"}
+            id="files_upload"
             type="file"
             onChange={(e) => handleUploadFiles(e, false)}
             className="hidden"
             multiple
           />
 
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+          {/* Directory Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <VerbaButton title="Directory" Icon={GoFileDirectoryFill} />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"Dir_" + component.name + key}
                       onClick={() => {
                         setSelectedDirReader(component.name);
                         document.getElementById("dir_upload")?.click();
-                        closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <input
-            id={"dir_upload"}
-            type="file"
             ref={ref}
+            id="dir_upload"
+            type="file"
             onChange={(e) => handleUploadFiles(e, true)}
             className="hidden"
             multiple
           />
 
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
+          {/* URL Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <VerbaButton title="URL" Icon={IoMdAddCircle} />
-            </label>
-            <input id={"url_upload"} type="file" className="hidden" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type === "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"URL_" + component.name + key}
-                      onClick={() => {
-                        handleAddURL(component.name);
-                        closeOnClick();
-                      }}
+                      onClick={() => handleAddURL(component.name)}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <VerbaButton
+            title="Clear All"
+            Icon={MdCancel}
+            onClick={openDeleteModal}
+            disabled={fileCount === 0}
+            selected_color="bg-warning-verba"
+          />
         </div>
       </div>
 
       {/* File List */}
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col gap-3 p-6 items-center justify-start h-full w-full overflow-auto">
-        {Object.entries(fileMap).map(([key, fileData]) => (
-          <FileComponent
-            key={"FileComponent_" + key}
-            fileData={fileData}
-            handleDeleteFile={handleDeleteFile}
-            selectedFileData={selectedFileData}
-            setSelectedFileData={setSelectedFileData}
-            fileMap={fileMap}
-          />
-        ))}
+      <div className="bg-bg-alt-verba rounded-2xl flex flex-col gap-2 p-4 max-h-[50vh] overflow-y-auto">
+        {fileCount === 0 ? (
+          <div className="text-center text-text-alt-verba py-8">
+            No files selected. Use the buttons above to add files, directories, or URLs.
+          </div>
+        ) : (
+          <>
+            {/* Status Summary */}
+            <div className="flex gap-2 mb-2 text-sm">
+              <span className="text-text-alt-verba">Total: {fileCount}</span>
+              {readyCount > 0 && <span className="text-blue-500">Ready: {readyCount}</span>}
+              {processingCount > 0 && <span className="text-yellow-500">Processing: {processingCount}</span>}
+              {doneCount > 0 && <span className="text-green-500">Done: {doneCount}</span>}
+              {errorCount > 0 && <span className="text-red-500">Error: {errorCount}</span>}
+            </div>
+            
+            {/* File Components */}
+            {Object.values(fileMap).map((fileData) => (
+              <FileComponent
+                key={fileData.fileID}
+                fileData={fileData}
+                fileMap={fileMap}
+                handleDeleteFile={handleDeleteFile}
+                selectedFileData={selectedFileData}
+                setSelectedFileData={setSelectedFileData}
+              />
+            ))}
+          </>
+        )}
       </div>
 
-      {/* Import Footer */}
-      {socketStatus === "ONLINE" ? (
-        <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-end h-min w-full">
-          <div className="flex flex-wrap gap-3 justify-end">
-            {selectedFileData && (
-              <VerbaButton
-                title="Import Selected"
-                Icon={FaFileImport}
-                onClick={importSelected}
-              />
-            )}
+      {/* Import Buttons */}
+      {fileCount > 0 && (
+        <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-4 items-center justify-between">
+          <div className="flex gap-2">
+            <VerbaButton
+              title="Import Selected"
+              Icon={FaFileImport}
+              onClick={importSelected}
+              disabled={!selectedFileData || socketStatus === "OFFLINE"}
+              selected={true}
+              selected_color="bg-primary-verba"
+            />
             <VerbaButton
               title="Import All"
               Icon={FaFileImport}
               onClick={importAll}
-            />
-
-            <VerbaButton
-              title="Clear Files"
-              Icon={MdCancel}
-              onClick={openDeleteModal}
+              disabled={fileCount === 0 || socketStatus === "OFFLINE"}
+              selected={true}
+              selected_color="bg-secondary-verba"
             />
           </div>
-        </div>
-      ) : (
-        <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-end h-min w-full">
-          <div className="flex gap-3 justify-end">
+          <div className="flex gap-2 items-center">
             <button
+              className={`flex gap-2 items-center px-3 py-2 rounded-lg ${
+                socketStatus === "ONLINE"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
               onClick={reconnect}
-              className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
+              disabled={socketStatus === "ONLINE"}
             >
               <TbPlugConnected size={15} />
-              <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
+              <p>{socketStatus === "ONLINE" ? "Connected" : "Reconnecting..."}</p>
+              {socketStatus === "OFFLINE" && (
+                <span className="animate-pulse">●</span>
+              )}
             </button>
           </div>
         </div>
       )}
 
       <UserModalComponent
-        modal_id={"remove_all_files"}
-        title={"Clear all files?"}
-        text={"Do you want to clear all files from your selection?"}
+        open={deleteAllModalOpen}
+        onOpenChange={setDeleteAllModalOpen}
+        title="Clear all files?"
+        text="Do you want to clear all files from your selection?"
         triggerString="Clear All"
         triggerValue={null}
         triggerAccept={handleDeleteFile}

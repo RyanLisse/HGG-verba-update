@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { MdCancel, MdOutlineRefresh } from "react-icons/md";
 import { TbPlugConnected } from "react-icons/tb";
 import { IoChatbubbleSharp } from "react-icons/io5";
@@ -10,14 +10,6 @@ import { BiError } from "react-icons/bi";
 import { IoMdAddCircle } from "react-icons/io";
 import VerbaButton from "../Navigation/VerbaButton";
 
-import {
-  updateRAGConfig,
-  sendUserQuery,
-  fetchDatacount,
-  fetchRAGConfig,
-  fetchSuggestions,
-  fetchLabels,
-} from "@/app/api";
 import { getWebSocketApiHost } from "@/app/util";
 import {
   Credentials,
@@ -31,6 +23,15 @@ import {
   Theme,
   DocumentFilter,
 } from "@/app/types";
+
+// Import TanStack Query hooks
+import {
+  useDatacount,
+  useLabels,
+  useSuggestions,
+  useSendQuery,
+  useUpdateRAGConfig,
+} from "@/app/hooks/api-hooks";
 
 import InfoComponent from "../Navigation/InfoComponent";
 import ChatConfig from "./ChatConfig";
@@ -85,60 +86,73 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [reasoningText, setReasoningText] = useState("");
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [socketOnline, setSocketOnline] = useState(false);
-  const [reconnect, setReconnect] = useState(false);
 
   const [currentSuggestions, setCurrentSuggestions] = useState<Suggestion[]>(
     []
   );
 
-  const [labels, setLabels] = useState<string[]>([]);
   const [filterLabels, setFilterLabels] = useState<string[]>([]);
 
   const [selectedDocumentScore, setSelectedDocumentScore] = useState<
     string | null
   >(null);
 
-  const [currentDatacount, setCurrentDatacount] = useState(0);
-
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isComposing, setIsComposing] = useState(false);
 
-  const currentEmbedding = RAGConfig
-    ? (RAGConfig["Embedder"].components[RAGConfig["Embedder"].selected].config[
-        "Model"
-      ].value as string)
-    : "No Config found";
-  useState("No Embedding Model");
+  // Get current embedding model from config
+  const currentEmbedding = useMemo(() => {
+    if (!RAGConfig) return "No Config found";
+    return RAGConfig["Embedder"].components[RAGConfig["Embedder"].selected]
+      .config["Model"].value as string;
+  }, [RAGConfig]);
 
-  useEffect(() => {
-    setReconnect(true);
-  }, []);
+  // Use TanStack Query hooks
+  const { data: datacountData } = useDatacount(
+    currentEmbedding,
+    documentFilter,
+    credentials
+  );
 
-  useEffect(() => {
-    if (RAGConfig) {
-      retrieveDatacount();
-    } else {
-      setCurrentDatacount(0);
-    }
-  }, [currentEmbedding, currentPage, documentFilter]);
+  const { data: labelsData } = useLabels(credentials);
 
-  useEffect(() => {
-    setMessages((prev) => {
-      if (prev.length === 0) {
-        return [
-          {
-            type: "system",
-            content: selectedTheme.intro_message.text,
-          },
-        ];
-      }
-      return prev;
-    });
+  const { data: suggestionsData } = useSuggestions(
+    userInput,
+    5,
+    credentials
+  );
+
+  const sendQueryMutation = useSendQuery();
+  const updateConfigMutation = useUpdateRAGConfig();
+
+  // Update labels when data changes
+  const labels = useMemo(() => {
+    return labelsData?.labels || [];
+  }, [labelsData]);
+
+  // Update datacount when data changes
+  const currentDatacount = useMemo(() => {
+    return datacountData?.datacount || 0;
+  }, [datacountData]);
+
+  // Initialize with theme message
+  const initializeMessages = useCallback(() => {
+    setMessages([
+      {
+        type: "system",
+        content: selectedTheme.intro_message.text,
+      },
+    ]);
   }, [selectedTheme.intro_message.text]);
 
-  // Setup WebSocket and messages to /ws/generate_stream
-  useEffect(() => {
+  // Initialize messages on mount
+  React.useEffect(() => {
+    initializeMessages();
+  }, [initializeMessages]);
+
+  // Setup WebSocket connection
+  React.useEffect(() => {
     const socketHost = getWebSocketApiHost();
     const localSocket = new WebSocket(socketHost);
 
@@ -148,591 +162,263 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
 
     localSocket.onmessage = (event) => {
-      let data: any;
-
-      if (!isFetching.current) {
-        setPreviewText("");
-        return;
-      }
-
-      try {
-        data = JSON.parse(event.data);
-      } catch (e) {
-        console.error("Received data is not valid JSON:", event.data);
-        return; // Exit early if data isn't valid JSON
-      }
-
-      const newMessageContent = data.message;
-      if (data.reasoning) {
-        setReasoningText((prev) => prev + data.reasoning);
-      }
-      setPreviewText((prev) => prev + newMessageContent);
-
-      if (data.finish_reason === "stop") {
-        isFetching.current = false;
+      const data = JSON.parse(event.data);
+      if (data.type === "error") {
+        console.error("Received error:", data.data);
         setFetchingStatus("DONE");
-        addStatusMessage("Finished generation", "SUCCESS");
-        const full_text = data.full_text;
-        if (data.cached) {
-          const distance = data.distance;
-          setMessages((prev) => [
-            ...prev,
-            {
-              type: "system",
-              content: full_text,
-              cached: true,
-              distance: distance,
-            },
-          ]);
-        } else {
-          setMessages((prev) => [
-            ...prev,
-            { type: "system", content: full_text },
-          ]);
+        setSocketOnline(false);
+        isFetching.current = false;
+      } else if (data.error === "") {
+        if (data.finish_reason == "stop") {
+          isFetching.current = false;
+          setReasoningText("");
+          setFetchingStatus("DONE");
+          setPreviewText("");
+        } else if (data.modelUsed === "RETRIEVE_CHUNKS") {
+          setFetchingStatus("CHUNKS");
+        } else if (data.delta) {
+          if (data.delta.reasoning) {
+            setReasoningText((prev) => prev + data.delta.reasoning);
+          } else {
+            setFetchingStatus("RESPONSE");
+            setPreviewText((prev) => prev + data.delta);
+          }
         }
-        setPreviewText("");
+      } else {
+        setSocketOnline(false);
+        setFetchingStatus("DONE");
+        isFetching.current = false;
+        addStatusMessage(
+          "Something went wrong: " + JSON.stringify(data.error),
+          "ERROR"
+        );
       }
     };
 
     localSocket.onerror = (error) => {
-      console.error("WebSocket Error:", error);
+      console.error("WebSocket error:", error);
       setSocketOnline(false);
-      isFetching.current = false;
       setFetchingStatus("DONE");
-      setReconnect((prev) => !prev);
+      isFetching.current = false;
     };
 
-    localSocket.onclose = (event) => {
-      if (event.wasClean) {
-        console.log(
-          `WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
-        );
-      } else {
-        console.error("WebSocket connection died");
-      }
+    localSocket.onclose = () => {
+      console.log("WebSocket connection closed");
       setSocketOnline(false);
-      isFetching.current = false;
       setFetchingStatus("DONE");
-      setReconnect((prev) => !prev);
+      isFetching.current = false;
     };
 
     setSocket(localSocket);
 
     return () => {
-      if (localSocket.readyState !== WebSocket.CLOSED) {
-        localSocket.close();
-      }
+      localSocket.close();
     };
-  }, [reconnect]);
+  }, [addStatusMessage]);
 
-  useEffect(() => {
-    if (RAGConfig) {
-      retrieveDatacount();
-    } else {
-      setCurrentDatacount(0);
-    }
-  }, [RAGConfig]);
+  const handleSendQuery = useCallback(async () => {
+    if (!userInput.trim() || !RAGConfig || isFetching.current) return;
 
-  const retrieveRAGConfig = async () => {
-    const config = await fetchRAGConfig(credentials);
-    if (config) {
-      setRAGConfig(config.rag_config);
-    } else {
-      addStatusMessage("Failed to fetch RAG Config", "ERROR");
-    }
-  };
-
-  const sendUserMessage = async () => {
-    if (isFetching.current || !userInput.trim()) return;
-
-    const sendInput = userInput;
-    setUserInput("");
     isFetching.current = true;
-    setCurrentSuggestions([]);
+    setPreviewText("");
     setFetchingStatus("CHUNKS");
     setReasoningText("");
-    setMessages((prev) => [...prev, { type: "user", content: sendInput }]);
 
-    try {
-      addStatusMessage("Sending query...", "INFO");
-      // Optional LangSmith trace (frontend-only). No-op if not configured.
-      logTrace("user_message", { message: sendInput }).catch(() => {});
-      const data = await sendUserQuery(
-        sendInput,
-        RAGConfig,
-        filterLabels,
-        documentFilter,
-        credentials
-      );
+    // Add user message
+    const userMessage: Message = {
+      type: "user",
+      content: userInput,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setUserInput("");
 
-      if (!data || data.error) {
-        handleErrorResponse(data ? data.error : "No data received");
+    // Send query using mutation
+    const result = await sendQueryMutation.mutateAsync({
+      query: userInput,
+      RAG: RAGConfig,
+      labels: filterLabels,
+      documentFilter,
+      credentials,
+    });
+
+    if (result) {
+      // Handle the query result
+      if (result.error === "") {
+        // Add retrieval message if there are context chunks
+        if (result.context && result.context.length > 0) {
+          const retrievalMessage: Message = {
+            type: "retrieval",
+            content: result.context,
+          };
+          setMessages((prev) => [...prev, retrievalMessage]);
+          setSelectedChunkScore(result.context);
+          setSelectedDocumentScore(result.context[0].doc_uuid);
+        }
+        
+        // Add system message with the response
+        const systemMessage: Message = {
+          type: "system",
+          content: result.system_msg,
+          cached: result.cached,
+        };
+        setMessages((prev) => [...prev, systemMessage]);
       } else {
-        handleSuccessResponse(data, sendInput);
-        // Log retrieval metadata if LangSmith is enabled
-        logTrace("retrieval", { query: sendInput }, { meta: data }).catch(
-          () => {}
-        );
+        addStatusMessage("Query failed: " + result.error, "ERROR");
       }
-    } catch (error) {
-      handleErrorResponse("Failed to fetch from API");
-      console.error("Failed to fetch from API:", error);
     }
-  };
 
-  const handleErrorResponse = (errorMessage: string) => {
-    addStatusMessage("Query failed", "ERROR");
-    setMessages((prev) => [...prev, { type: "error", content: errorMessage }]);
     isFetching.current = false;
     setFetchingStatus("DONE");
-  };
+  }, [
+    userInput,
+    RAGConfig,
+    filterLabels,
+    documentFilter,
+    credentials,
+    sendQueryMutation,
+    setSelectedChunkScore,
+    addStatusMessage,
+  ]);
 
-  const handleSuccessResponse = (data: QueryPayload, sendInput: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { type: "retrieval", content: data.documents, context: data.context },
-    ]);
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      setUserInput(suggestion);
+    },
+    []
+  );
 
-    addStatusMessage(
-      "Received " + Object.entries(data.documents).length + " documents",
-      "SUCCESS"
-    );
-
-    if (data.documents.length > 0) {
-      const firstDoc = data.documents[0];
-      setSelectedDocument(firstDoc.uuid);
-      setSelectedDocumentScore(
-        `${firstDoc.uuid}${firstDoc.score}${firstDoc.chunks.length}`
-      );
-      setSelectedChunkScore(firstDoc.chunks);
-
-      if (data.context) {
-        streamResponses(sendInput, data.context);
-        setFetchingStatus("RESPONSE");
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey && !isComposing) {
+        e.preventDefault();
+        handleSendQuery();
       }
-    } else {
-      handleErrorResponse("We couldn't find any chunks to your query");
-    }
-  };
+    },
+    [handleSendQuery, isComposing]
+  );
 
-  const streamResponses = (query?: string, context?: string) => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      const filteredMessages = messages
-        .slice(1) // Skip the first message
-        .filter((msg) => msg.type === "user" || msg.type === "system")
-        .map((msg) => ({
-          type: msg.type,
-          content: msg.content,
-        }));
-
-      const data = JSON.stringify({
-        query: query,
-        context: context,
-        conversation: filteredMessages,
-        rag_config: RAGConfig,
-      });
-      socket.send(data);
-    } else {
-      console.error("WebSocket is not open. ReadyState:", socket?.readyState);
-    }
-  };
-
-  const handleCompositionStart = () => {
-    setIsComposing(true);
-  };
-
-  const handleCompositionEnd = () => {
-    setIsComposing(false);
-  };
-
-  const handleKeyDown = (e: any) => {
-    if (e.key === "Enter" && !e.shiftKey && !isComposing) {
-      e.preventDefault(); // Prevent new line
-      sendUserMessage(); // Submit form
-    }
-  };
-
-  const retrieveDatacount = async () => {
-    try {
-      const data: DataCountPayload | null = await fetchDatacount(
-        currentEmbedding,
-        documentFilter,
-        credentials
-      );
-      const labels: LabelsResponse | null = await fetchLabels(credentials);
-      if (data) {
-        setCurrentDatacount(data.datacount);
-      }
-      if (labels) {
-        setLabels(labels.labels);
-      }
-    } catch (error) {
-      console.error("Failed to fetch from API:", error);
-      addStatusMessage("Failed to fetch datacount: " + error, "ERROR");
-    }
-  };
-
-  const reconnectToVerba = () => {
-    setReconnect((prevState) => !prevState);
-  };
-
-  const onSaveConfig = async () => {
-    addStatusMessage("Saved Config", "SUCCESS");
-    await updateRAGConfig(RAGConfig, credentials);
-  };
-
-  const onResetConfig = async () => {
-    addStatusMessage("Reset Config", "WARNING");
-    retrieveRAGConfig();
-  };
-
-  const handleSuggestions = async () => {
-    if (
-      RAGConfig &&
-      RAGConfig["Retriever"].components[RAGConfig["Retriever"].selected].config[
-        "Suggestion"
-      ].value
-    ) {
-      const suggestions = await fetchSuggestions(userInput, 3, credentials);
-      if (suggestions) {
-        setCurrentSuggestions(suggestions.suggestions);
-      }
-    }
-  };
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    initializeMessages();
+    setSelectedChunkScore([]);
+    setSelectedDocumentScore(null);
+    addStatusMessage("Chat cleared", "INFO");
+  }, [initializeMessages, setSelectedChunkScore, addStatusMessage]);
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      {/* Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-between h-min w-full">
-        <div className="hidden md:flex gap-2 justify-start items-center">
-          <InfoComponent
-            tooltip_text="Use the Chat interface to interact with your data and perform Retrieval Augmented Generation (RAG). This interface allows you to ask questions, analyze sources, and generate responses based on your stored documents."
-            display_text={"Chat"}
-          />
-        </div>
-        <div className="w-full md:w-fit flex gap-3 justify-end items-center">
-          <VerbaButton
-            title="Chat"
-            Icon={IoChatbubbleSharp}
-            onClick={() => {
-              setSelectedSetting("Chat");
-            }}
-            selected={selectedSetting === "Chat"}
-            disabled={false}
-            selected_color="bg-secondary-verba"
-          />
-          {production != "Demo" && (
+    <div className="flex flex-col lg:flex-row gap-3 p-4">
+      <div className="flex-1 bg-bg-alt-verba rounded-2xl flex flex-col gap-2 p-6 items-center justify-between h-[80vh] min-h-[80vh]">
+        <div className="flex gap-2 justify-center w-full items-center">
+          {production !== "Demo" && (
+            <VerbaButton
+              title="Chat"
+              Icon={IoChatbubbleSharp}
+              onClick={() => setSelectedSetting("Chat")}
+              selected={selectedSetting === "Chat"}
+              className="min-w-min"
+            />
+          )}
+          {production !== "Demo" && (
             <VerbaButton
               title="Config"
               Icon={FaHammer}
-              onClick={() => {
-                setSelectedSetting("Config");
-              }}
+              onClick={() => setSelectedSetting("Config")}
               selected={selectedSetting === "Config"}
-              disabled={false}
-              selected_color="bg-secondary-verba"
+              className="min-w-min"
+            />
+          )}
+          <VerbaButton
+            title={currentDatacount.toString()}
+            Icon={TbPlugConnected}
+            className="min-w-min"
+            disabled={true}
+            selected={currentDatacount > 0}
+            selected_color="bg-secondary-verba"
+          />
+          {production === "Demo" && (
+            <InfoComponent
+              tooltip_text="In the Demo Version, the Chat Config and retrieval are set to predefined settings and cannot be changed"
+              display_text=""
             />
           )}
         </div>
-      </div>
 
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col h-[50vh] md:h-full w-full overflow-y-auto overflow-x-hidden relative">
-        {/* New fixed tab */}
-        {selectedSetting == "Chat" && (
-          <div className="sticky flex flex-col gap-2 top-0 z-9 p-4 backdrop-blur-sm bg-opacity-30 bg-bg-alt-verba rounded-lg">
-            <div className="flex gap-2 justify-start items-center">
-              <div className="flex gap-2">
-                <div className="dropdown dropdown-hover">
-                  <label tabIndex={0}>
-                    <VerbaButton
-                      title="Label"
-                      className="btn-sm min-w-min"
-                      icon_size={12}
-                      text_class_name="text-xs"
-                      Icon={IoMdAddCircle}
-                      selected={false}
-                      disabled={false}
-                    />
-                  </label>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
+        {selectedSetting === "Chat" && (
+          <div className="flex flex-col gap-4 w-full h-full overflow-hidden">
+            <Conversation className="flex-1 overflow-y-auto">
+              <ConversationContent>
+                {messages.map((message, index) => (
+                  <ChatMessage
+                    key={index}
+                    message={message}
+                    setSelectedDocument={setSelectedDocument}
+                    currentPage={currentPage}
+                  />
+                ))}
+                {previewText && (
+                  <ChatMessage
+                    message={{
+                      type: "system",
+                      content: previewText,
+                    }}
+                    setSelectedDocument={setSelectedDocument}
+                    currentPage={currentPage}
+                  />
+                )}
+                {reasoningText && (
+                  <Reasoning title="Thinking" value={reasoningText} />
+                )}
+              </ConversationContent>
+              <ConversationScrollButton className="bg-button-verba" />
+            </Conversation>
+
+            <div className="flex gap-2 items-center">
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                placeholder="Ask a question..."
+                className="flex-1 p-3 rounded-lg bg-bg-verba text-text-verba resize-none"
+                rows={2}
+              />
+              <VerbaButton
+                Icon={IoIosSend}
+                onClick={handleSendQuery}
+                disabled={!userInput.trim() || isFetching.current}
+                loading={isFetching.current}
+              />
+              <VerbaButton
+                Icon={MdCancel}
+                onClick={clearChat}
+                selected_color="bg-warning-verba"
+              />
+            </div>
+
+            {suggestionsData?.suggestions && suggestionsData.suggestions.length > 0 && (
+              <Actions>
+                {suggestionsData.suggestions.map((suggestion, index) => (
+                  <Action
+                    key={index}
+                    onClick={() => handleSuggestionClick(suggestion.query)}
                   >
-                    {labels.map((label, index) => (
-                      <li key={"Label" + index}>
-                        <a
-                          onClick={() => {
-                            if (!filterLabels.includes(label)) {
-                              setFilterLabels([...filterLabels, label]);
-                            }
-                            const dropdownElement =
-                              document.activeElement as HTMLElement;
-                            dropdownElement.blur();
-                            const dropdown = dropdownElement.closest(
-                              ".dropdown"
-                            ) as HTMLElement;
-                            if (dropdown) dropdown.blur();
-                          }}
-                        >
-                          {label}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              {(filterLabels.length > 0 || documentFilter.length > 0) && (
-                <VerbaButton
-                  onClick={() => {
-                    setFilterLabels([]);
-                    setDocumentFilter([]);
-                  }}
-                  title="Clear"
-                  className="btn-sm max-w-min"
-                  icon_size={12}
-                  text_class_name="text-xs"
-                  Icon={MdCancel}
-                  selected={false}
-                  disabled={false}
-                />
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {filterLabels.map((label, index) => (
-                <VerbaButton
-                  title={label}
-                  key={"FilterLabel" + index}
-                  Icon={MdCancel}
-                  className="btn-sm min-w-min max-w-[200px]"
-                  icon_size={12}
-                  selected_color="bg-primary-verba"
-                  selected={true}
-                  text_class_name="truncate max-w-[200px]"
-                  text_size="text-xs"
-                  onClick={() => {
-                    setFilterLabels(filterLabels.filter((l) => l !== label));
-                  }}
-                />
-              ))}
-              {documentFilter.map((filter, index) => (
-                <VerbaButton
-                  title={filter.title}
-                  key={"DocumentFilter" + index}
-                  Icon={MdCancel}
-                  className="btn-sm min-w-min max-w-[200px]"
-                  icon_size={12}
-                  selected_color="bg-secondary-verba"
-                  selected={true}
-                  text_size="text-xs"
-                  text_class_name="truncate md:max-w-[100px] lg:max-w-[150px]"
-                  onClick={() => {
-                    setDocumentFilter(
-                      documentFilter.filter((f) => f.uuid !== filter.uuid)
-                    );
-                  }}
-                />
-              ))}
-            </div>
+                    {suggestion.query}
+                  </Action>
+                ))}
+              </Actions>
+            )}
           </div>
         )}
-        <div className={`${selectedSetting === "Chat" ? "" : "hidden"}`}>
-          <Conversation className="flex flex-col gap-3 p-4">
-            <ConversationContent>
-              <div className="flex w-full justify-start items-center text-text-alt-verba gap-2">
-                {currentDatacount === 0 && <BiError size={15} />}
-                {currentDatacount === 0 && (
-                  <p className="text-text-alt-verba text-sm items-center flex">{`${currentDatacount} documents embedded by ${currentEmbedding}`}</p>
-                )}
-              </div>
-              <div className="py-1">
-                <Reasoning text={reasoningText} />
-              </div>
-              {messages.map((message, index) => (
-                <div
-                  key={"Message_" + index}
-                  className={`${message.type === "user" ? "text-right" : ""}`}
-                >
-                  <ChatMessage
-                    message={message}
-                    message_index={index}
-                    selectedTheme={selectedTheme}
-                    selectedDocument={selectedDocumentScore}
-                    setSelectedDocumentScore={setSelectedDocumentScore}
-                    setSelectedDocument={setSelectedDocument}
-                    setSelectedChunkScore={setSelectedChunkScore}
-                  />
-                </div>
-              ))}
-              {previewText && (
-                <ChatMessage
-                  message={{ type: "system", content: previewText, cached: false }}
-                  message_index={-1}
-                  selectedTheme={selectedTheme}
-                  selectedDocument={selectedDocumentScore}
-                  setSelectedDocumentScore={setSelectedDocumentScore}
-                  setSelectedDocument={setSelectedDocument}
-                  setSelectedChunkScore={setSelectedChunkScore}
-                />
-              )}
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
-          <div className="px-4 pb-2">
-            <Actions>
-              <Action
-                label="Copy"
-                tooltip="Copy last response"
-                onClick={() => {
-                  const last = [...messages]
-                    .reverse()
-                    .find((m) => m.type !== "user");
-                  if (last && typeof last.content === "string") {
-                    navigator.clipboard.writeText(last.content);
-                  }
-                }}
-              >
-                ⧉
-              </Action>
-              <Action
-                label="Clear"
-                tooltip="Clear conversation"
-                onClick={() => setMessages(messages.slice(0, 1))}
-              >
-                ✕
-              </Action>
-            </Actions>
-          </div>
-          {isFetching.current && (
-            <div className="flex flex-col gap-2 px-4">
-              <div className="flex items-center gap-3">
-                <span className="text-text-alt-verba loading loading-dots loading-md"></span>
-                <p className="text-text-alt-verba">
-                  {fetchingStatus === "CHUNKS" && "Retrieving..."}
-                  {fetchingStatus === "RESPONSE" && "Generating..."}
-                </p>
-                <button
-                  onClick={() => {
-                    setFetchingStatus("DONE");
-                    isFetching.current = false;
-                  }}
-                  className="btn btn-circle btn-sm bg-bg-alt-verba hover:bg-warning-verba hover:text-text-verba text-text-alt-verba shadow-none border-none text-sm"
-                >
-                  <MdCancel size={15} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+
         {selectedSetting === "Config" && (
           <ChatConfig
+            credentials={credentials}
+            RAGConfig={RAGConfig}
+            setRAGConfig={setRAGConfig}
             addStatusMessage={addStatusMessage}
             production={production}
-            RAGConfig={RAGConfig}
-            credentials={credentials}
-            setRAGConfig={setRAGConfig}
-            onReset={onResetConfig}
-            onSave={onSaveConfig}
           />
-        )}
-      </div>
-
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-end h-min w-full">
-        {socketOnline ? (
-          <div className="flex gap-2 items-center justify-end w-full relative">
-            <div className="relative w-full">
-              <textarea
-                className="textarea textarea-bordered w-full bg-bg-verba placeholder-text-alt-verb min-h min-h-[40px] max-h-[150px] overflow-y-auto"
-                placeholder={
-                  currentDatacount > 0
-                    ? currentDatacount >= 100
-                      ? `Chatting with more than 100 documents...`
-                      : `Chatting with ${currentDatacount} documents...`
-                    : `No documents detected...`
-                }
-                onKeyDown={handleKeyDown}
-                onCompositionStart={handleCompositionStart}
-                onCompositionEnd={handleCompositionEnd}
-                value={userInput}
-                onChange={(e) => {
-                  const newValue = e.target.value;
-                  setUserInput(newValue);
-                  if ((newValue.length - 1) % 3 === 0) {
-                    handleSuggestions();
-                  }
-                }}
-              />
-              {currentSuggestions.length > 0 && (
-                <ul className="absolute flex gap-2 justify-between top-full left-0 w-full mt-2 z-10 max-h-40 overflow-y-auto">
-                  {currentSuggestions.map((suggestion, index) => (
-                    <li
-                      key={index}
-                      className="p-3 bg-button-verba hover:bg-secondary-verba text-text-alt-verba rounded-xl w-full hover:text-text-verba cursor-pointer"
-                      onClick={() => {
-                        setUserInput(suggestion.query);
-                        setCurrentSuggestions([]);
-                      }}
-                    >
-                      <p className="text-xs lg:text-sm">
-                        {suggestion.query.length > 50
-                          ? suggestion.query.substring(0, 50) + "..."
-                          : suggestion.query
-                              .split(new RegExp(`(${userInput})`, "gi"))
-                              .map((part, i) =>
-                                part.toLowerCase() ===
-                                userInput.toLowerCase() ? (
-                                  <strong key={i}>{part}</strong>
-                                ) : (
-                                  part
-                                )
-                              )}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <div className="flex flex-col gap-1 items-center justify-center">
-              <VerbaButton
-                type="button"
-                Icon={IoIosSend}
-                onClick={() => {
-                  sendUserMessage();
-                }}
-                disabled={false}
-                selected_color="bg-primary-verba"
-              />
-              <VerbaButton
-                type="button"
-                Icon={MdOutlineRefresh}
-                onClick={() => {
-                  setSelectedDocument(null);
-                  setSelectedChunkScore([]);
-                  setUserInput("");
-                  setSelectedDocumentScore(null);
-                  setCurrentSuggestions([]);
-                  setMessages([
-                    {
-                      type: "system",
-                      content: selectedTheme.intro_message.text,
-                    },
-                  ]);
-                }}
-                disabled={false}
-                selected_color="bg-primary-verba"
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-2 items-center justify-end w-full">
-            <button
-              onClick={reconnectToVerba}
-              className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
-            >
-              <TbPlugConnected size={15} />
-              <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
-            </button>
-          </div>
         )}
       </div>
     </div>

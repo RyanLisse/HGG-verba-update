@@ -49,6 +49,9 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   const [selectedSetting, setSelectedSetting] = useState<
     "Basic" | "Pipeline" | "Metadata"
   >("Basic");
+  const [applyAllModalOpen, setApplyAllModalOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [defaultModalOpen, setDefaultModalOpen] = useState(false);
 
   const applyToAll = () => {
     addStatusMessage("Applying config to all files", "INFO");
@@ -110,24 +113,15 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   };
 
   const openApplyAllModal = () => {
-    const modal = document.getElementById("apply_setting_to_all");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+    setApplyAllModalOpen(true);
   };
 
   const openResetModal = () => {
-    const modal = document.getElementById("reset_Setting");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+    setResetModalOpen(true);
   };
 
   const openDefaultModal = () => {
-    const modal = document.getElementById("set_default_settings");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
+    setDefaultModalOpen(true);
   };
 
   const updateConfig = useCallback(
@@ -302,26 +296,29 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         </div>
       </div>
       <UserModalComponent
-        modal_id={"apply_setting_to_all"}
-        title={"Apply Pipeline Settings"}
-        text={"Apply Pipeline Settings to all files?"}
+        open={applyAllModalOpen}
+        onOpenChange={setApplyAllModalOpen}
+        title="Apply Pipeline Settings"
+        text="Apply Pipeline Settings to all files?"
         triggerString="Apply"
         triggerValue={null}
         triggerAccept={applyToAll}
       />
       <UserModalComponent
-        modal_id={"reset_Setting"}
-        title={"Reset Setting"}
-        text={"Reset pipeline settings of this file?"}
+        open={resetModalOpen}
+        onOpenChange={setResetModalOpen}
+        title="Reset Setting"
+        text="Reset pipeline settings of this file?"
         triggerString="Reset"
         triggerValue={null}
         triggerAccept={resetConfig}
       />
 
       <UserModalComponent
-        modal_id={"set_default_settings"}
-        title={"Set Default"}
-        text={"Set current pipeline settings as default for future files?"}
+        open={defaultModalOpen}
+        onOpenChange={setDefaultModalOpen}
+        title="Set Default"
+        text="Set current pipeline settings as default for future files?"
         triggerString="Set"
         triggerValue={null}
         triggerAccept={setAsDefault}

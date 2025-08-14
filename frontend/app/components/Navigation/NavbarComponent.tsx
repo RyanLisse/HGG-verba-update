@@ -9,7 +9,14 @@ import { IoSettingsSharp } from "react-icons/io5";
 import { FaGithub } from "react-icons/fa";
 import { TiThMenu } from "react-icons/ti";
 
-import { closeOnClick } from "@/app/util";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/app/components/ui/sheet";
 
 import VerbaButton from "./VerbaButton";
 
@@ -44,16 +51,14 @@ const Navbar: React.FC<NavbarProps> = ({
   production,
 }) => {
   const [gitHubStars, setGitHubStars] = useState("0");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Declare an asynchronous function inside the useEffect
     const fetchGitHubStars = async () => {
       try {
-        // Await the asynchronous call to getGitHubStars
         const response: number = await getGitHubStars();
 
         if (response) {
-          // Now response is the resolved value of the promise
           const formatedStars = formatGitHubNumber(response);
           setGitHubStars(formatedStars);
         }
@@ -62,17 +67,20 @@ const Navbar: React.FC<NavbarProps> = ({
       }
     };
 
-    // Call the async function
     fetchGitHubStars();
   }, []);
 
   const handleGitHubClick = () => {
-    // Open a new tab with the specified URL
     window.open(
       "https://github.com/weaviate/verba",
       "_blank",
       "noopener,noreferrer"
     );
+  };
+
+  const handleMobileMenuClick = (page: "CHAT" | "DOCUMENTS" | "STATUS" | "ADD" | "SETTINGS" | "RAG") => {
+    setCurrentPage(page);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -88,62 +96,57 @@ const Navbar: React.FC<NavbarProps> = ({
           <p className="text-sm  text-text-alt-verba font-light">{subtitle}</p>
         </div>
         <div className="flex md:hidden flex-col items-center gap-3 justify-between">
-          <div className="dropdown dropdown-hover">
-            <VerbaButton Icon={TiThMenu} title="Menu" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content dropdown-left z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
-              <li key={"Menu Button1"}>
-                <a
-                  className={currentPage === "CHAT" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("CHAT");
-                    closeOnClick();
-                  }}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <VerbaButton Icon={TiThMenu} title="Menu" />
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[250px]">
+              <SheetHeader>
+                <SheetTitle>Navigation</SheetTitle>
+                <SheetDescription>
+                  Select a page to navigate to
+                </SheetDescription>
+              </SheetHeader>
+              <div className="flex flex-col gap-4 mt-6">
+                <button
+                  className={`text-left p-2 rounded-md hover:bg-gray-100 ${
+                    currentPage === "CHAT" ? "font-bold bg-gray-100" : ""
+                  }`}
+                  onClick={() => handleMobileMenuClick("CHAT")}
                 >
                   Chat
-                </a>
-              </li>
-              <li key={"Menu Button2"}>
-                <a
-                  className={currentPage === "DOCUMENTS" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("DOCUMENTS");
-                    closeOnClick();
-                  }}
+                </button>
+                <button
+                  className={`text-left p-2 rounded-md hover:bg-gray-100 ${
+                    currentPage === "DOCUMENTS" ? "font-bold bg-gray-100" : ""
+                  }`}
+                  onClick={() => handleMobileMenuClick("DOCUMENTS")}
                 >
                   Documents
-                </a>
-              </li>
-              {production != "Demo" && (
-                <li key={"Menu Button4"}>
-                  <a
-                    className={currentPage === "ADD" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("ADD");
-                      closeOnClick();
-                    }}
-                  >
-                    Import Data
-                  </a>
-                </li>
-              )}
-              {production != "Demo" && (
-                <li key={"Menu Button5"}>
-                  <a
-                    className={currentPage === "SETTINGS" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("SETTINGS");
-                      closeOnClick();
-                    }}
-                  >
-                    Settings
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
+                </button>
+                {production !== "Demo" && (
+                  <>
+                    <button
+                      className={`text-left p-2 rounded-md hover:bg-gray-100 ${
+                        currentPage === "ADD" ? "font-bold bg-gray-100" : ""
+                      }`}
+                      onClick={() => handleMobileMenuClick("ADD")}
+                    >
+                      Import Data
+                    </button>
+                    <button
+                      className={`text-left p-2 rounded-md hover:bg-gray-100 ${
+                        currentPage === "SETTINGS" ? "font-bold bg-gray-100" : ""
+                      }`}
+                      onClick={() => handleMobileMenuClick("SETTINGS")}
+                    >
+                      Settings
+                    </button>
+                  </>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
 

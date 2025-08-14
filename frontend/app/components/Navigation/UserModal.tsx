@@ -1,9 +1,19 @@
 "use client";
 
 import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import { Button } from "@/app/components/ui/button";
 
 interface UserModalComponentProps {
-  modal_id: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   title: string;
   text: string;
   triggerAccept?: null | ((a: any) => void);
@@ -11,42 +21,47 @@ interface UserModalComponentProps {
   triggerString?: string | null;
 }
 
-import VerbaButton from "./VerbaButton";
-
 const UserModalComponent: React.FC<UserModalComponentProps> = ({
+  open,
+  onOpenChange,
   title,
-  modal_id,
   text,
   triggerAccept,
   triggerString,
   triggerValue,
 }) => {
+  const handleAccept = () => {
+    if (triggerAccept) {
+      triggerAccept(triggerValue);
+    }
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    onOpenChange(false);
+  };
+
   return (
-    <dialog id={modal_id} className="modal">
-      <div className="modal-box flex flex-col gap-2">
-        <h3 className="font-bold text-lg">{title}</h3>
-        <p className="whitespace-pre-wrap">{text}</p>
-        <div className="modal-action">
-          <form method="dialog" className="flex gap-2">
-            {triggerAccept && triggerString && (
-              <VerbaButton
-                type="submit"
-                title={triggerString}
-                onClick={() => {
-                  triggerAccept(triggerValue);
-                }}
-              />
-            )}
-            <VerbaButton
-              type="submit"
-              title="Cancel"
-              selected_color="bg-warning-verba"
-              selected={true}
-            />
-          </form>
-        </div>
-      </div>
-    </dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="whitespace-pre-wrap">
+            {text}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex gap-2">
+          {triggerAccept && triggerString && (
+            <Button onClick={handleAccept} variant="default">
+              {triggerString}
+            </Button>
+          )}
+          <Button onClick={handleCancel} variant="destructive">
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
