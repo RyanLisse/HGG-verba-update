@@ -9,6 +9,15 @@ import { RAGConfig, RAGComponentConfig } from "@/app/types";
 import { closeOnClick } from "@/app/util";
 
 import VerbaButton from "../Navigation/VerbaButton";
+import { Input } from "@/app/components/ui/input";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Separator } from "@/app/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 
 export const MultiInput: React.FC<{
   component_name: string;
@@ -43,34 +52,25 @@ export const MultiInput: React.FC<{
 
   return (
     <div className="flex flex-col w-full gap-2">
-      <div className="flex gap-2 justify-between">
-        <label className="input flex items-center gap-2 w-full bg-bg-verba">
-          <input
-            type="text"
-            className="grow w-full"
-            disabled={blocked}
-            value={currentInput}
-            onChange={(e) => {
-              setCurrentInput(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                addValue(currentInput);
-              }
-            }}
-          />
-        </label>
-        <button
-          onClick={() => {
-            addValue(currentInput);
-          }}
+      <div className="flex gap-2 justify-between items-center">
+        <Input
           disabled={blocked}
-          className="btn flex gap-2 bg-button-verba border-none hover:bg-secondary-verba text-text-verba"
-        >
-          <IoAddCircleSharp size={15} />
-          <p>Add</p>
-        </button>
+          value={currentInput}
+          onChange={(e) => setCurrentInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addValue(currentInput);
+            }
+          }}
+          className="w-full bg-bg-verba"
+        />
+        <VerbaButton
+          onClick={() => addValue(currentInput)}
+          disabled={blocked}
+          Icon={IoAddCircleSharp}
+          title="Add"
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -84,15 +84,12 @@ export const MultiInput: React.FC<{
                 {value}
               </p>
             </div>
-            <button
+            <VerbaButton
               disabled={blocked}
-              onClick={() => {
-                removeValue(value);
-              }}
-              className="btn btn-sm btn-square bg-button-verba border-none hover:bg-warning-verba text-text-verba ml-2"
-            >
-              <FaTrash size={12} />
-            </button>
+              onClick={() => removeValue(value)}
+              className="btn-sm"
+              Icon={FaTrash}
+            />
           </div>
         ))}
       </div>
@@ -176,7 +173,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
   return (
     <div className="flex flex-col justify-start gap-3 rounded-2xl p-1 w-full ">
       <div className="flex items-center justify-between">
-        <div className="divider text-text-alt-verba flex-grow text-xs lg:text-sm">
+        <div className="flex items-center gap-3 text-text-alt-verba flex-grow text-xs lg:text-sm">
           <p>{RAGConfig[component_name].selected} Settings</p>
           <VerbaButton
             title="Save"
@@ -190,6 +187,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
               );
             }}
           />
+          <Separator className="ml-auto" />
         </div>
       </div>
       {/* Component */}
@@ -199,23 +197,34 @@ const ComponentView: React.FC<ComponentViewProps> = ({
             <p className="flex min-w-[8vw] lg:text-base text-sm">
               {component_name}
             </p>
-            <div className="dropdown dropdown-bottom flex justify-start items-center w-full">
-              <button
-                tabIndex={0}
-                role="button"
-                disabled={blocked}
-                className="btn bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
-              >
-                <GoTriangleDown size={15} />
-                <p>{RAGConfig[component_name].selected}</p>
-              </button>
-              <ul
-                tabIndex={0}
-                className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow"
-              >
-                {renderComponents(RAGConfig)}
-              </ul>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="w-full">
+                  <VerbaButton
+                    title={RAGConfig[component_name].selected}
+                    className="w-full justify-start"
+                    Icon={GoTriangleDown as any}
+                    disabled={blocked}
+                  />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full">
+                {Object.entries(RAGConfig[component_name].components)
+                  .filter(([_, component]) => component.available)
+                  .map(([key, component]) => (
+                    <DropdownMenuItem
+                      key={"ComponentDropdown_" + component.name}
+                      onClick={() => {
+                        if (!blocked) {
+                          selectComponent(component_name, component.name);
+                        }
+                      }}
+                    >
+                      {component.name}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="flex gap-2 items-center text-text-verba">
@@ -241,44 +250,49 @@ const ComponentView: React.FC<ComponentViewProps> = ({
 
             {/* Dropdown */}
             {config.type === "dropdown" && (
-              <div className="dropdown dropdown-bottom flex justify-start items-center w-full">
-                <button
-                  tabIndex={0}
-                  role="button"
-                  disabled={blocked}
-                  className="btn bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
-                >
-                  <GoTriangleDown size={15} />
-                  <p>{config.value}</p>
-                </button>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content menu bg-base-100 max-h-[20vh] overflow-auto rounded-box z-[1] w-full p-2 shadow"
-                >
-                  {renderConfigOptions(RAGConfig, configTitle)}
-                </ul>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="w-full">
+                    <VerbaButton
+                      title={String(config.value)}
+                      className="w-full justify-start"
+                      Icon={GoTriangleDown as any}
+                      disabled={blocked}
+                    />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full max-h-[20vh] overflow-auto">
+                  {RAGConfig[component_name].components[
+                    RAGConfig[component_name].selected
+                  ].config[configTitle].values.map((configValue) => (
+                    <DropdownMenuItem
+                      key={"ConfigValue" + configValue}
+                      onClick={() => {
+                        if (!blocked) {
+                          updateConfig(component_name, configTitle, configValue);
+                        }
+                      }}
+                    >
+                      {configValue}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
 
             {/* Text Input */}
             {typeof config.value != "boolean" &&
               ["text", "number", "password"].includes(config.type) && (
-                <label className="input flex text-sm items-center gap-2 w-full bg-bg-verba">
-                  <input
-                    type={config.type}
-                    className="grow w-full"
-                    value={config.value}
-                    onChange={(e) => {
-                      if (!blocked) {
-                        updateConfig(
-                          component_name,
-                          configTitle,
-                          e.target.value
-                        );
-                      }
-                    }}
-                  />
-                </label>
+                <Input
+                  type={config.type as any}
+                  className="w-full bg-bg-verba text-sm"
+                  value={config.value as any}
+                  onChange={(e) => {
+                    if (!blocked) {
+                      updateConfig(component_name, configTitle, e.target.value);
+                    }
+                  }}
+                />
               )}
 
             {/* Text Area */}
@@ -286,7 +300,7 @@ const ComponentView: React.FC<ComponentViewProps> = ({
               ["textarea"].includes(config.type) && (
                 <textarea
                   className="grow w-full text-sm min-h-[152px] bg-bg-verba rounded-lg p-2"
-                  value={config.value}
+                  value={config.value as any}
                   onChange={(e) => {
                     if (!blocked) {
                       updateConfig(component_name, configTitle, e.target.value);
@@ -312,21 +326,13 @@ const ComponentView: React.FC<ComponentViewProps> = ({
                 <p className="lg:text-sm text-xs text-text-alt-verba text-start w-[250px]">
                   {config.description}
                 </p>
-                <input
-                  type="checkbox"
-                  className="checkbox checkbox-md"
-                  onChange={(e) => {
+                <Checkbox
+                  checked={typeof config.value === "boolean" ? (config.value as boolean) : false}
+                  onCheckedChange={(c) => {
                     if (!blocked) {
-                      updateConfig(
-                        component_name,
-                        configTitle,
-                        (e.target as HTMLInputElement).checked
-                      );
+                      updateConfig(component_name, configTitle, Boolean(c));
                     }
                   }}
-                  checked={
-                    typeof config.value === "boolean" ? config.value : false
-                  }
                 />
               </div>
             )}

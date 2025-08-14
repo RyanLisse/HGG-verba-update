@@ -52,6 +52,7 @@
     "react-window": "^1.8.9",
     "@tanstack/react-query": "^5.51.23",
     "@tanstack/react-query-devtools": "^5.51.23",
+    "daisyui": "^4.10.1",
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "^1.0.7",

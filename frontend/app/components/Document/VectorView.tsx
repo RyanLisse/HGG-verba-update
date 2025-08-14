@@ -11,6 +11,15 @@ import { OrbitControls, Float, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { MdCancel } from "react-icons/md";
 import { GoTriangleDown } from "react-icons/go";
+import { Switch } from "@/app/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import { Spinner } from "@/app/components/ui/spinner";
+import VerbaButton from "../Navigation/VerbaButton";
 
 import { vectorToColor } from "./util";
 
@@ -318,7 +327,7 @@ const VectorView: React.FC<VectorViewProps> = ({
             <div className="flex gap-2 items-center">
               {isFetching && (
                 <div className="flex items-center justify-center text-text-alt-verba gap-2 h-full">
-                  <span className="loading loading-spinner loading-xs lg:loading-sm"></span>
+                  <Spinner />
                 </div>
               )}
               <p className="text-text-alt-verba text-xs lg:text-sm font-bold">
@@ -369,34 +378,28 @@ const VectorView: React.FC<VectorViewProps> = ({
 
               <div className="flex gap-2 items-center justify-between">
                 <p className="text-xs text-text-alt-verba">Dynamic Coloring</p>
-                <input
-                  type="checkbox"
-                  className="toggle"
+                <Switch
                   checked={dynamicColor}
-                  onChange={(e) => {
-                    setDymanicColor(e.target.checked);
-                  }}
+                  onCheckedChange={(c) => setDymanicColor(Boolean(c))}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-2 w-full">
               {/* Dropdown */}
-              <div className="dropdown dropdown-bottom flex w-full justify-start items-center">
-                <button
-                  tabIndex={0}
-                  role="button"
-                  disabled={true}
-                  className="btn btn-sm bg-button-verba hover:bg-button-hover-verba text-text-verba w-full flex justify-start border-none"
-                >
-                  <GoTriangleDown size={15} />
-                  <p>PCA</p>
-                </button>
-                <ul
-                  tabIndex={0}
-                  className="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow"
-                ></ul>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="w-full">
+                    <VerbaButton
+                      title="PCA"
+                      className="w-full justify-start btn-sm"
+                      Icon={GoTriangleDown as any}
+                      disabled
+                    />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full" />
+              </DropdownMenu>
               {/* Zoom */}
               <div className="flex items-center gap-2 w-full">
                 <p className="text-text-alt-verba text-sm">Zoom</p>
@@ -414,15 +417,15 @@ const VectorView: React.FC<VectorViewProps> = ({
             </div>
 
             {chunk && (
-              <button
+              <VerbaButton
+                circle
                 onClick={() => {
                   setChunk(null);
                   setSelectedChunk(null);
                 }}
-                className="flex btn btn-square border-none text-text-verba bg-button-verba hover:bg-warning-verba gap-2"
-              >
-                <MdCancel size={15} />
-              </button>
+                Icon={MdCancel}
+                className="btn-sm"
+              />
             )}
           </div>
         </div>

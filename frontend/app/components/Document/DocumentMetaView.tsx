@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { VerbaDocument, Credentials } from "@/app/types";
 import { fetchSelectedDocument } from "@/app/api";
+import { Spinner } from "@/app/components/ui/spinner";
 
 interface DocumentMetaViewProps {
   selectedDocument: string;
@@ -45,7 +46,7 @@ const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
     <div className="flex flex-col h-full">
       {isFetching ? (
         <div className="flex items-center justify-center h-full">
-          <span className="loading loading-spinner loading-md text-text-verba bg-text-alt-verba"></span>
+          <Spinner />
         </div>
       ) : (
         document && (

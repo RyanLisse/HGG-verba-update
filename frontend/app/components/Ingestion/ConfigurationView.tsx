@@ -9,7 +9,13 @@ import { FaHammer } from "react-icons/fa";
 
 import { updateRAGConfig } from "@/app/api";
 
-import UserModalComponent from "../Navigation/UserModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 
 import { FileMap, FileData } from "@/app/types";
 import { RAGConfig } from "@/app/types";
@@ -109,26 +115,9 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
     });
   };
 
-  const openApplyAllModal = () => {
-    const modal = document.getElementById("apply_setting_to_all");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
-
-  const openResetModal = () => {
-    const modal = document.getElementById("reset_Setting");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
-
-  const openDefaultModal = () => {
-    const modal = document.getElementById("set_default_settings");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [defaultOpen, setDefaultOpen] = useState(false);
 
   const updateConfig = useCallback(
     (
@@ -286,46 +275,94 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
       {/* Import Footer */}
       <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-end h-min w-full">
         <div className="flex gap-3 justify-end">
-          <VerbaButton
-            title="Apply to All"
-            onClick={openApplyAllModal}
-            Icon={VscSaveAll}
-          />
+          <Dialog open={applyOpen} onOpenChange={setApplyOpen}>
+            <DialogTrigger asChild>
+              <div>
+                <VerbaButton title="Apply to All" Icon={VscSaveAll} />
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Apply Pipeline Settings</DialogTitle>
+              </DialogHeader>
+              <p>Apply Pipeline Settings to all files?</p>
+              <div className="flex gap-2 justify-end pt-2">
+                <VerbaButton
+                  title="Cancel"
+                  selected
+                  selected_color="bg-warning-verba"
+                  onClick={() => setApplyOpen(false)}
+                />
+                <VerbaButton
+                  title="Apply"
+                  onClick={() => {
+                    setApplyOpen(false);
+                    applyToAll();
+                  }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
 
-          <VerbaButton
-            title="Save Config"
-            onClick={openDefaultModal}
-            Icon={IoSettingsSharp}
-          />
+          <Dialog open={defaultOpen} onOpenChange={setDefaultOpen}>
+            <DialogTrigger asChild>
+              <div>
+                <VerbaButton title="Save Config" Icon={IoSettingsSharp} />
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Set Default</DialogTitle>
+              </DialogHeader>
+              <p>Set current pipeline settings as default for future files?</p>
+              <div className="flex gap-2 justify-end pt-2">
+                <VerbaButton
+                  title="Cancel"
+                  selected
+                  selected_color="bg-warning-verba"
+                  onClick={() => setDefaultOpen(false)}
+                />
+                <VerbaButton
+                  title="Set"
+                  onClick={() => {
+                    setDefaultOpen(false);
+                    setAsDefault();
+                  }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
 
-          <VerbaButton title="Reset" onClick={openResetModal} Icon={MdCancel} />
+          <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+            <DialogTrigger asChild>
+              <div>
+                <VerbaButton title="Reset" Icon={MdCancel} />
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset Setting</DialogTitle>
+              </DialogHeader>
+              <p>Reset pipeline settings of this file?</p>
+              <div className="flex gap-2 justify-end pt-2">
+                <VerbaButton
+                  title="Cancel"
+                  selected
+                  selected_color="bg-warning-verba"
+                  onClick={() => setResetOpen(false)}
+                />
+                <VerbaButton
+                  title="Reset"
+                  onClick={() => {
+                    setResetOpen(false);
+                    resetConfig();
+                  }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
-      <UserModalComponent
-        modal_id={"apply_setting_to_all"}
-        title={"Apply Pipeline Settings"}
-        text={"Apply Pipeline Settings to all files?"}
-        triggerString="Apply"
-        triggerValue={null}
-        triggerAccept={applyToAll}
-      />
-      <UserModalComponent
-        modal_id={"reset_Setting"}
-        title={"Reset Setting"}
-        text={"Reset pipeline settings of this file?"}
-        triggerString="Reset"
-        triggerValue={null}
-        triggerAccept={resetConfig}
-      />
-
-      <UserModalComponent
-        modal_id={"set_default_settings"}
-        title={"Set Default"}
-        text={"Set current pipeline settings as default for future files?"}
-        triggerString="Set"
-        triggerValue={null}
-        triggerAccept={setAsDefault}
-      />
     </div>
   );
 };

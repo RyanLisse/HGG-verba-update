@@ -10,7 +10,13 @@ import { FaSearch, FaTrash } from "react-icons/fa";
 import { MdOutlineRefresh, MdCancel } from "react-icons/md";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import InfoComponent from "../Navigation/InfoComponent";
-import UserModalComponent from "../Navigation/UserModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 import VerbaButton from "../Navigation/VerbaButton";
 import { IoMdAddCircle } from "react-icons/io";
 import {
@@ -127,12 +133,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     setSelectedLabels((prev) => prev.filter((label) => label !== l));
   };
 
-  const openDeleteModal = (id: string) => {
-    const modal = document.getElementById(id);
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [deleteOpenId, setDeleteOpenId] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -241,26 +242,48 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                     onClick={() => setSelectedDocument(document.uuid)}
                   />
                   {production !== "Demo" && (
-                    <VerbaButton
-                      Icon={FaTrash}
-                      selected={selectedDocument == document.uuid}
-                      selected_color="bg-warning-verba"
-                      className="max-w-min"
-                      key={document.title + index + "delete"}
-                      onClick={() => {
-                        openDeleteModal("remove_document" + document.uuid);
-                      }}
-                    />
+                    <Dialog
+                      open={deleteOpenId === document.uuid}
+                      onOpenChange={(o) => setDeleteOpenId(o ? document.uuid : null)}
+                    >
+                      <DialogTrigger asChild>
+                        <div>
+                          <VerbaButton
+                            Icon={FaTrash}
+                            selected={selectedDocument == document.uuid}
+                            selected_color="bg-warning-verba"
+                            className="max-w-min"
+                            key={document.title + index + "delete"}
+                          />
+                        </div>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Remove Document</DialogTitle>
+                        </DialogHeader>
+                        <p className="whitespace-pre-wrap">
+                          Do you want to remove {document.title}?
+                        </p>
+                        <div className="flex gap-2 justify-end pt-2">
+                          <VerbaButton
+                            title="Cancel"
+                            selected
+                            selected_color="bg-warning-verba"
+                            onClick={() => setDeleteOpenId(null)}
+                          />
+                          <VerbaButton
+                            title="Delete"
+                            onClick={() => {
+                              setDeleteOpenId(null);
+                              handleDeleteDocument(document.uuid);
+                            }}
+                          />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </div>
-                <UserModalComponent
-                  modal_id={"remove_document" + document.uuid}
-                  title={"Remove Document"}
-                  text={"Do you want to remove " + document.title + "?"}
-                  triggerString="Delete"
-                  triggerValue={document.uuid}
-                  triggerAccept={handleDeleteDocument}
-                />
+                
               </div>
             ))}{" "}
         </div>

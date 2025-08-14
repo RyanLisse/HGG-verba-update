@@ -12,7 +12,20 @@ import { IoMdArrowDropdown } from "react-icons/io";
 
 import { closeOnClick } from "@/app/util";
 
-import UserModalComponent from "../Navigation/UserModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
+import { Spinner } from "@/app/components/ui/spinner";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -58,12 +71,7 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
     }
   }, [ref]);
 
-  const openDeleteModal = () => {
-    const modal = document.getElementById("remove_all_files");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [clearOpen, setClearOpen] = useState(false);
 
   const handleDeleteFile = (filename: string | null) => {
     setFileMap((prevFileMap: FileMap): FileMap => {
@@ -228,35 +236,29 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
           />
         </div>
         <div className="flex gap-3 justify-center lg:justify-end">
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
-              <VerbaButton
-                title="Files"
-                Icon={IoMdAddCircle}
-                onClick={() => document.getElementById("files_upload")?.click()}
-              />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div>
+                <VerbaButton title="Files" Icon={IoMdAddCircle} />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"File_" + component.name + key}
                       onClick={() => {
                         setSelectedFileReader(component.name);
                         document.getElementById("files_upload")?.click();
-                        closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <input
             id={"files_upload"}
             type="file"
@@ -299,31 +301,29 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
             multiple
           />
 
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
-              <VerbaButton title="URL" Icon={IoMdAddCircle} />
-            </label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div>
+                <VerbaButton title="URL" Icon={IoMdAddCircle} />
+              </div>
+            </DropdownMenuTrigger>
             <input id={"url_upload"} type="file" className="hidden" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type === "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"URL_" + component.name + key}
                       onClick={() => {
                         handleAddURL(component.name);
-                        closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -361,33 +361,47 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
             <VerbaButton
               title="Clear Files"
               Icon={MdCancel}
-              onClick={openDeleteModal}
+              onClick={() => setClearOpen(true)}
             />
           </div>
         </div>
       ) : (
         <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-end h-min w-full">
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={reconnect}
-              className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
-            >
-              <TbPlugConnected size={15} />
-              <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
-            </button>
+          <div className="flex gap-3 justify-end items-center">
+            <VerbaButton onClick={reconnect} Icon={TbPlugConnected} title="Reconnecting..." />
+            <Spinner />
           </div>
         </div>
       )}
 
-      <UserModalComponent
-        modal_id={"remove_all_files"}
-        title={"Clear all files?"}
-        text={"Do you want to clear all files from your selection?"}
-        triggerString="Clear All"
-        triggerValue={null}
-        triggerAccept={handleDeleteFile}
-      />
+      <Dialog open={clearOpen} onOpenChange={setClearOpen}>
+        <DialogTrigger asChild>
+          <div>
+            {/* Trigger lives above; keep a hidden trigger for a11y */}
+          </div>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear all files?</DialogTitle>
+          </DialogHeader>
+          <p>Do you want to clear all files from your selection?</p>
+          <div className="flex gap-2 justify-end pt-2">
+            <VerbaButton
+              title="Cancel"
+              selected
+              selected_color="bg-warning-verba"
+              onClick={() => setClearOpen(false)}
+            />
+            <VerbaButton
+              title="Clear All"
+              onClick={() => {
+                setClearOpen(false);
+                handleDeleteFile(null);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

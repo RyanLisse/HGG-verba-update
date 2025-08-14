@@ -15,6 +15,7 @@ import { fetch_chunks } from "@/app/api";
 import { Credentials } from "@/app/types";
 
 import VerbaButton from "../Navigation/VerbaButton";
+import { Spinner } from "@/app/components/ui/spinner";
 
 interface ChunkViewProps {
   selectedDocument: string | null;
@@ -123,7 +124,7 @@ const ChunkView: React.FC<ChunkViewProps> = ({
       <div>
         {isFetching && (
           <div className="flex items-center justify-center text-text-verba gap-2 h-full">
-            <span className="loading loading-spinner loading-sm"></span>
+            <Spinner />
           </div>
         )}
       </div>

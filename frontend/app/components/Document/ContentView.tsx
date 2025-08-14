@@ -21,6 +21,7 @@ import {
 import { fetchContent } from "@/app/api";
 
 import VerbaButton from "../Navigation/VerbaButton";
+import { Spinner } from "@/app/components/ui/spinner";
 
 interface ContentViewProps {
   document: VerbaDocument | null;
@@ -229,7 +230,7 @@ const ContentView: React.FC<ContentViewProps> = ({
               <div className="flex gap-4 items-center">
                 {isFetching && (
                   <div className="flex items-center justify-center text-text-verba gap-2">
-                    <span className="loading loading-spinner loading-sm"></span>
+                    <Spinner />
                   </div>
                 )}
                 <p
