@@ -455,7 +455,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     <div>
                       <VerbaButton
                         title="Label"
-                        className="btn-sm min-w-min"
+                        size="sm"
+                        className="min-w-min"
                         icon_size={12}
                         text_class_name="text-xs"
                         Icon={IoMdAddCircle}
@@ -487,7 +488,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     setDocumentFilter([]);
                   }}
                   title="Clear"
-                  className="btn-sm max-w-min"
+                  size="sm"
+                  className="max-w-min"
                   icon_size={12}
                   text_class_name="text-xs"
                   Icon={MdCancel}
@@ -502,7 +504,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   title={label}
                   key={"FilterLabel" + index}
                   Icon={MdCancel}
-                  className="btn-sm min-w-min max-w-[200px]"
+                  size="sm"
+                  className="min-w-min max-w-[200px]"
                   icon_size={12}
                   selected_color="bg-primary-verba"
                   selected={true}
@@ -518,7 +521,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   title={filter.title}
                   key={"DocumentFilter" + index}
                   Icon={MdCancel}
-                  className="btn-sm min-w-min max-w-[200px]"
+                  size="sm"
+                  className="min-w-min max-w-[200px]"
                   icon_size={12}
                   selected_color="bg-secondary-verba"
                   selected={true}
@@ -611,7 +615,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 </p>
                 <VerbaButton
                   circle
-                  className="btn-sm"
+                  size="sm"
                   Icon={MdCancel}
                   onClick={() => {
                     setFetchingStatus("DONE");

@@ -10,6 +10,12 @@ import { FaGithub } from "react-icons/fa";
 import { TiThMenu } from "react-icons/ti";
 
 import { closeOnClick } from "@/app/util";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 
 import VerbaButton from "./VerbaButton";
 
@@ -88,62 +94,51 @@ const Navbar: React.FC<NavbarProps> = ({
           <p className="text-sm  text-text-alt-verba font-light">{subtitle}</p>
         </div>
         <div className="flex md:hidden flex-col items-center gap-3 justify-between">
-          <div className="dropdown dropdown-hover">
-            <VerbaButton Icon={TiThMenu} title="Menu" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content dropdown-left z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
-              <li key={"Menu Button1"}>
-                <a
-                  className={currentPage === "CHAT" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("CHAT");
-                    closeOnClick();
-                  }}
-                >
-                  Chat
-                </a>
-              </li>
-              <li key={"Menu Button2"}>
-                <a
-                  className={currentPage === "DOCUMENTS" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("DOCUMENTS");
-                    closeOnClick();
-                  }}
-                >
-                  Documents
-                </a>
-              </li>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div>
+                <VerbaButton Icon={TiThMenu} title="Menu" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
+              <DropdownMenuItem
+                onClick={() => {
+                  setCurrentPage("CHAT");
+                }}
+                className={currentPage === "CHAT" ? "font-bold" : ""}
+              >
+                Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setCurrentPage("DOCUMENTS");
+                }}
+                className={currentPage === "DOCUMENTS" ? "font-bold" : ""}
+              >
+                Documents
+              </DropdownMenuItem>
               {production != "Demo" && (
-                <li key={"Menu Button4"}>
-                  <a
-                    className={currentPage === "ADD" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("ADD");
-                      closeOnClick();
-                    }}
-                  >
-                    Import Data
-                  </a>
-                </li>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setCurrentPage("ADD");
+                  }}
+                  className={currentPage === "ADD" ? "font-bold" : ""}
+                >
+                  Import Data
+                </DropdownMenuItem>
               )}
               {production != "Demo" && (
-                <li key={"Menu Button5"}>
-                  <a
-                    className={currentPage === "SETTINGS" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("SETTINGS");
-                      closeOnClick();
-                    }}
-                  >
-                    Settings
-                  </a>
-                </li>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setCurrentPage("SETTINGS");
+                  }}
+                  className={currentPage === "SETTINGS" ? "font-bold" : ""}
+                >
+                  Settings
+                </DropdownMenuItem>
               )}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

@@ -11,7 +11,7 @@ Verba's Frontend is a [NextJS](https://nextjs.org/) application using [TailwindC
 ## UI Migration Notes
 
 - New primitives in `app/components/ui` mirror shadcn/ui (button, dialog, dropdown, input, textarea, checkbox, select, badge, card, spinner, etc.).
-- We are incrementally replacing DaisyUI classes with shadcn/ui components. During transition, some DaisyUI utility classes may appear; these will be removed as we complete migration.
+- DaisyUI has been removed. All dialogs, dropdowns, inputs, checkboxes, toggles, spinners, and separators now use shadcn/ui.
 - For complex layouts/interactions, we take inspiration from Kibo UI, Origin UI, and Blocks, while keeping shadcn primitives for consistency.
 
 ## 🚀 Setting Up the Frontend

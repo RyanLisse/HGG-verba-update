@@ -185,7 +185,8 @@ const ChunkView: React.FC<ChunkViewProps> = ({
               <VerbaButton
                 title={"Previous Chunk"}
                 onClick={previousChunk}
-                className="btn-sm min-w-min max-w-[200px]"
+                size="sm"
+                className="min-w-min max-w-[200px]"
                 text_class_name="text-xs"
                 disabled={isPreviousDisabled}
                 Icon={FaArrowAltCircleLeft}
@@ -193,7 +194,8 @@ const ChunkView: React.FC<ChunkViewProps> = ({
               <VerbaButton
                 title={"Next Chunk"}
                 onClick={nextChunk}
-                className="btn-sm min-w-min max-w-[200px]"
+                size="sm"
+                className="min-w-min max-w-[200px]"
                 text_class_name="text-xs"
                 Icon={FaArrowAltCircleRight}
               />

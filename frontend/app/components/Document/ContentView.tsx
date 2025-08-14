@@ -247,7 +247,8 @@ const ContentView: React.FC<ContentViewProps> = ({
                     title={label}
                     text_size="text-xs"
                     text_class_name="truncate max-w-[200px]"
-                    className="btn-sm min-w-min max-w-[200px]"
+                    size="sm"
+                    className="min-w-min max-w-[200px]"
                   />
                 ))}
               </div>
@@ -270,7 +271,8 @@ const ContentView: React.FC<ContentViewProps> = ({
             <VerbaButton
               title={"Previous " + (chunkScores ? "Chunk" : "Page")}
               onClick={previousPage}
-              className="btn-sm min-w-min max-w-[200px]"
+              size="sm"
+              className="min-w-min max-w-[200px]"
               text_class_name="text-xs"
               Icon={FaArrowAltCircleLeft}
             />
@@ -282,7 +284,8 @@ const ContentView: React.FC<ContentViewProps> = ({
             <VerbaButton
               title={"Next " + (chunkScores ? "Chunk" : "Page")}
               onClick={nextPage}
-              className="btn-sm min-w-min max-w-[200px]"
+              size="sm"
+              className="min-w-min max-w-[200px]"
               text_class_name="text-xs"
               Icon={FaArrowAltCircleRight}
             />

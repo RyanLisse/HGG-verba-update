@@ -5,7 +5,13 @@ import { Credentials, Suggestion } from "@/app/types";
 import { IoTrash, IoDocumentSharp, IoReload, IoCopy } from "react-icons/io5";
 import { FaWrench } from "react-icons/fa";
 import { fetchAllSuggestions, deleteSuggestion } from "@/app/api";
-import UserModalComponent from "../Navigation/UserModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 import { FaArrowAltCircleRight, FaArrowAltCircleLeft } from "react-icons/fa";
 import { formatDistanceToNow, parseISO } from "date-fns";
 
@@ -124,25 +130,25 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <VerbaButton
-                    onClick={() => handleCopy(suggestion.query)}
-                    Icon={IoCopy}
-                  />
-                  <VerbaButton
-                    onClick={() =>
-                      openModal("remove_suggestion" + suggestion.uuid)
-                    }
-                    Icon={IoTrash}
-                  />
+                  <VerbaButton onClick={() => handleCopy(suggestion.query)} Icon={IoCopy} />
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div>
+                        <VerbaButton Icon={IoTrash} />
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Remove Suggestion</DialogTitle>
+                      </DialogHeader>
+                      <p>Do you want to remove this suggestion?</p>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <VerbaButton title="Cancel" selected selected_color="bg-warning-verba" />
+                        <VerbaButton title="Delete" onClick={() => handleDelete(suggestion.uuid)} />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <UserModalComponent
-                  modal_id={"remove_suggestion" + suggestion.uuid}
-                  title={"Remove Suggestion"}
-                  text={"Do you want to remove this suggestion?"}
-                  triggerString="Delete"
-                  triggerValue={suggestion.uuid}
-                  triggerAccept={handleDelete}
-                />
               </div>
             ))}
           </div>
@@ -153,7 +159,8 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
           <VerbaButton
             title="Previous Page"
             onClick={previousPage}
-            className="btn-sm min-w-min max-w-[200px]"
+            size="sm"
+            className="min-w-min max-w-[200px]"
             text_class_name="text-xs"
             Icon={FaArrowAltCircleLeft}
           />
@@ -161,7 +168,8 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
           <VerbaButton
             title="Next Page"
             onClick={nextPage}
-            className="btn-sm min-w-min max-w-[200px]"
+            size="sm"
+            className="min-w-min max-w-[200px]"
             text_class_name="text-xs"
             Icon={FaArrowAltCircleRight}
           />

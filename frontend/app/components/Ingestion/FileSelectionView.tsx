@@ -267,31 +267,29 @@ const FileSelectionView: React.FC<FileSelectionViewProps> = ({
             multiple
           />
 
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
-              <VerbaButton title="Directory" Icon={GoFileDirectoryFill} />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow"
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div>
+                <VerbaButton title="Directory" Icon={GoFileDirectoryFill} />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {RAGConfig &&
                 Object.entries(RAGConfig["Reader"].components)
                   .filter(([key, component]) => component.type !== "URL")
                   .map(([key, component]) => (
-                    <li
+                    <DropdownMenuItem
                       key={"Dir_" + component.name + key}
                       onClick={() => {
                         setSelectedDirReader(component.name);
                         document.getElementById("dir_upload")?.click();
-                        closeOnClick();
                       }}
                     >
-                      <a>{component.name}</a>
-                    </li>
+                      {component.name}
+                    </DropdownMenuItem>
                   ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <input
             id={"dir_upload"}
             type="file"

@@ -158,7 +158,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <div>
-              <VerbaButton Icon={IoDocumentAttach} className="btn-sm btn-square" />
+              <VerbaButton Icon={IoDocumentAttach} size="sm" circle />
             </div>
           </DialogTrigger>
           <DialogContent>

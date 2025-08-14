@@ -6,7 +6,13 @@ import { FaTrash } from "react-icons/fa";
 import { FaCheckCircle } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 
-import UserModalComponent from "../Navigation/UserModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -25,14 +31,7 @@ const FileComponent: React.FC<FileComponentProps> = ({
   selectedFileData,
   setSelectedFileData,
 }) => {
-  const openDeleteModal = () => {
-    const modal = document.getElementById(
-      "remove_file_" + fileMap[fileData.fileID].filename
-    );
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [openDelete, setOpenDelete] = React.useState(false);
 
   return (
     <div className="flex items-center gap-2 w-full">
@@ -89,28 +88,43 @@ const FileComponent: React.FC<FileComponentProps> = ({
         }}
       />
 
-      <VerbaButton
-        Icon={FaTrash}
-        onClick={openDeleteModal}
-        className="w-[50px]"
-        selected={selectedFileData === fileMap[fileData.fileID].fileID}
-        selected_color="bg-warning-verba"
-      />
-
-      <UserModalComponent
-        modal_id={"remove_file_" + fileMap[fileData.fileID].filename}
-        title={"Remove File"}
-        text={
-          fileMap[fileData.fileID].isURL
-            ? "Do you want to remove the URL?"
-            : "Do you want to remove " +
-              fileMap[fileData.fileID].filename +
-              " from the selection?"
-        }
-        triggerString="Delete"
-        triggerValue={fileMap[fileData.fileID].fileID}
-        triggerAccept={handleDeleteFile}
-      />
+      <Dialog open={openDelete} onOpenChange={setOpenDelete}>
+        <DialogTrigger asChild>
+          <div>
+            <VerbaButton
+              Icon={FaTrash}
+              className="w-[50px]"
+              selected={selectedFileData === fileMap[fileData.fileID].fileID}
+              selected_color="bg-warning-verba"
+            />
+          </div>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove File</DialogTitle>
+          </DialogHeader>
+          <p className="whitespace-pre-wrap">
+            {fileMap[fileData.fileID].isURL
+              ? "Do you want to remove the URL?"
+              : `Do you want to remove ${fileMap[fileData.fileID].filename} from the selection?`}
+          </p>
+          <div className="flex gap-2 justify-end pt-2">
+            <VerbaButton
+              title="Cancel"
+              selected
+              selected_color="bg-warning-verba"
+              onClick={() => setOpenDelete(false)}
+            />
+            <VerbaButton
+              title="Delete"
+              onClick={() => {
+                setOpenDelete(false);
+                handleDeleteFile(fileMap[fileData.fileID].fileID);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

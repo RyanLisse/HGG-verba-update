@@ -17,6 +17,7 @@ import { TbDatabaseEdit } from "react-icons/tb";
 import { connectToVerba } from "@/app/api";
 
 import VerbaButton from "../Navigation/VerbaButton";
+import { Input } from "@/app/components/ui/input";
 
 import { Credentials, RAGConfig, Theme, Themes } from "@/app/types";
 
@@ -357,46 +358,46 @@ const LoginView: React.FC<LoginViewProps> = ({
                       }}
                     >
                       <div className="flex gap-2 items-center justify-between">
-                        <label className="input flex items-center gap-2 border-none shadow-md w-full bg-bg-verba">
+                        <div className="flex items-center gap-2 w-full bg-bg-verba shadow-md rounded px-2 py-1">
                           <FaDatabase className="text-text-alt-verba" />
-                          <input
+                          <Input
                             type="text"
                             name="username"
                             value={weaviateURL}
                             onChange={(e) => setWeaviateURL(e.target.value)}
                             placeholder="Weaviate URL"
-                            className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
                             autoComplete="username"
+                            className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                           />
-                        </label>
+                        </div>
                         {selectedDeployment == "Custom" && (
-                          <label className="input flex items-center gap-2 border-none shadow-md bg-bg-verba">
+                          <div className="flex items-center gap-2 bg-bg-verba shadow-md rounded px-2 py-1">
                             <p className="text-text-alt-verba text-xs">Port</p>
-                            <input
+                            <Input
                               type="text"
                               name="Port"
                               value={port}
                               onChange={(e) => setPort(e.target.value)}
                               placeholder="Port"
-                              className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
                               autoComplete="port"
+                              className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-24"
                             />
-                          </label>
+                          </div>
                         )}
                       </div>
 
-                      <label className="input flex items-center gap-2 border-none shadow-md bg-bg-verba mt-4">
+                      <div className="flex items-center gap-2 bg-bg-verba shadow-md rounded px-2 py-1 mt-4">
                         <FaKey className="text-text-alt-verba" />
-                        <input
+                        <Input
                           type="password"
                           name="current-password"
                           value={weaviateAPIKey}
                           onChange={(e) => setWeaviateAPIKey(e.target.value)}
                           placeholder="API Key"
-                          className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
                           autoComplete="current-password"
+                          className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                         />
-                      </label>
+                      </div>
                       <div className="flex justify-between gap-4 mt-4">
                         <div className="flex flex-col w-full gap-2">
                           <div className="flex flex-col justify-start gap-2 w-full">

@@ -362,17 +362,8 @@ const VectorView: React.FC<VectorViewProps> = ({
             <div className="flex flex-col gap-2 w-full">
               {production != "Demo" && (
                 <div className="flex gap-2 items-center justify-between">
-                  <p className="text-xs text-text-alt-verba">
-                    Show All Documents
-                  </p>
-                  <input
-                    type="checkbox"
-                    className="toggle"
-                    checked={showAll}
-                    onChange={(e) => {
-                      setShowAll(e.target.checked);
-                    }}
-                  />
+                  <p className="text-xs text-text-alt-verba">Show All Documents</p>
+                  <Switch checked={showAll} onCheckedChange={(c) => setShowAll(Boolean(c))} />
                 </div>
               )}
 
@@ -392,7 +383,8 @@ const VectorView: React.FC<VectorViewProps> = ({
                   <div className="w-full">
                     <VerbaButton
                       title="PCA"
-                      className="w-full justify-start btn-sm"
+                      size="sm"
+                      className="w-full justify-start"
                       Icon={GoTriangleDown as any}
                       disabled
                     />
@@ -409,9 +401,9 @@ const VectorView: React.FC<VectorViewProps> = ({
                   }}
                   type="range"
                   min={0}
-                  max="1000"
+                  max={1000}
                   value={viewMultiplication}
-                  className="range range-xs grow w-full"
+                  className="grow w-full"
                 />
               </div>
             </div>
@@ -424,7 +416,7 @@ const VectorView: React.FC<VectorViewProps> = ({
                   setSelectedChunk(null);
                 }}
                 Icon={MdCancel}
-                className="btn-sm"
+                size="sm"
               />
             )}
           </div>

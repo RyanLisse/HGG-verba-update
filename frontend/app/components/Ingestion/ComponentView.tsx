@@ -87,7 +87,7 @@ export const MultiInput: React.FC<{
             <VerbaButton
               disabled={blocked}
               onClick={() => removeValue(value)}
-              className="btn-sm"
+              size="sm"
               Icon={FaTrash}
             />
           </div>

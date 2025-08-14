@@ -22,6 +22,7 @@ import {
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Checkbox } from "@/app/components/ui/checkbox";
+import { Separator } from "@/app/components/ui/separator";
 
 import ComponentView from "./ComponentView";
 
@@ -177,7 +178,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
       <div key={fileData.fileID + key + label}>
         <VerbaButton
           title={label}
-          className="btn-sm"
+          size="sm"
           text_class_name="text-xs"
           onClick={() => {
             removeLabel(label);
@@ -192,7 +193,10 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     return (
       <div className="flex flex-col justify-start gap-3 rounded-2xl p-1 w-full ">
         {selectedFileData && fileMap[selectedFileData].status != "READY" && (
-          <div className="divider  text-text-alt-verba">Import Status</div>
+          <>
+            <div className="text-text-alt-verba font-semibold">Import Status</div>
+            <Separator className="my-1" />
+          </>
         )}
 
         <div className="flex flex-col gap-3 text-text-verba">
@@ -207,23 +211,15 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
                     {statusReport.status === "ERROR" && <MdError size={15} />}
                     {statusTextMap[statusReport.status]}
                   </p>
-                  <label
-                    className={`input flex items-center gap-2 w-full ${statusColorMap[statusReport.status]} bg-bg-verba`}
-                  >
-                    <input
-                      type="text"
-                      className="grow w-full"
-                      value={
-                        statusReport.took != 0
-                          ? statusReport.message +
-                            " (" +
-                            statusReport.took +
-                            "s)"
-                          : statusReport.message
-                      }
-                      disabled={true}
-                    />
-                  </label>
+                  <Input
+                    value={
+                      statusReport.took != 0
+                        ? statusReport.message + ` (${statusReport.took}s)`
+                        : statusReport.message
+                    }
+                    disabled
+                    className={`${statusColorMap[statusReport.status]} bg-bg-verba`}
+                  />
                 </div>
               )
             )}
@@ -239,7 +235,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           blocked={fileMap[selectedFileData].block}
         />
 
-        <div className="divider text-text-alt-verba">File Settings</div>
+        <div className="text-text-alt-verba font-semibold">File Settings</div>
+        <Separator className="my-1" />
 
         {/* Filename */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
@@ -336,7 +333,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           </p>
         </div>
 
-        <div className="divider  text-text-alt-verba">Metadata</div>
+        <div className="text-text-alt-verba font-semibold">Metadata</div>
+        <Separator className="my-1" />
 
         {/* Metadata */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
@@ -358,7 +356,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           </p>
         </div>
 
-        <div className="divider  text-text-alt-verba">File Information</div>
+        <div className="text-text-alt-verba font-semibold">File Information</div>
+        <Separator className="my-1" />
 
         {/* Extension */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
@@ -380,7 +379,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           />
         </div>
 
-        <div className="divider  text-text-alt-verba">Ingestion Pipeline</div>
+        <div className="text-text-alt-verba font-semibold">Ingestion Pipeline</div>
+        <Separator className="my-1" />
 
         {/* Reader */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
@@ -442,7 +442,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
           </p>
         </div>
 
-        <div className="divider"></div>
+        <Separator className="my-2" />
 
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Debug</p>

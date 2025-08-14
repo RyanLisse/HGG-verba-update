@@ -5,7 +5,14 @@ import { Credentials, NodePayload, CollectionPayload } from "@/app/types";
 import { IoTrash, IoDocumentSharp, IoReload } from "react-icons/io5";
 import { FaWrench } from "react-icons/fa";
 import { deleteAllDocuments, fetchMeta } from "@/app/api";
-import UserModalComponent from "../Navigation/UserModal";
+import { Spinner } from "@/app/components/ui/spinner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 
 import VerbaButton from "../Navigation/VerbaButton";
 
@@ -84,12 +91,10 @@ const InfoView: React.FC<InfoViewProps> = ({
     }
   };
 
-  const openModal = (modal_id: string) => {
-    const modal = document.getElementById(modal_id);
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [openDoc, setOpenDoc] = useState(false);
+  const [openCfg, setOpenCfg] = useState(false);
+  const [openAll, setOpenAll] = useState(false);
+  const [openSug, setOpenSug] = useState(false);
 
   return (
     <div className="flex flex-col w-full h-full p-4">
@@ -108,26 +113,77 @@ const InfoView: React.FC<InfoViewProps> = ({
           <p className="font-bold text-lg">Resetting Verba</p>
           <div className="flex flex-wrap gap-2 justify-between">
             <div className="flex flex-wrap gap-2">
-              <VerbaButton
-                title="Clear Documents"
-                onClick={() => openModal("reset-documents")}
-                Icon={IoDocumentSharp}
-              />
-              <VerbaButton
-                title="Clear Config"
-                onClick={() => openModal("reset-configs")}
-                Icon={FaWrench}
-              />
-              <VerbaButton
-                title="Clear Everything"
-                onClick={() => openModal("reset-verba")}
-                Icon={IoTrash}
-              />
-              <VerbaButton
-                title="Clear Suggestions"
-                onClick={() => openModal("reset-suggestions")}
-                Icon={IoTrash}
-              />
+              <Dialog open={openDoc} onOpenChange={setOpenDoc}>
+                <DialogTrigger asChild>
+                  <div>
+                    <VerbaButton title="Clear Documents" Icon={IoDocumentSharp} />
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset Documents</DialogTitle>
+                  </DialogHeader>
+                  <p>Are you sure you want to reset all documents? This will clear all documents and chunks from Verba.</p>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <VerbaButton title="Cancel" selected selected_color="bg-warning-verba" onClick={() => setOpenDoc(false)} />
+                    <VerbaButton title="Reset" onClick={() => { setOpenDoc(false); resetDocuments(); }} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={openCfg} onOpenChange={setOpenCfg}>
+                <DialogTrigger asChild>
+                  <div>
+                    <VerbaButton title="Clear Config" Icon={FaWrench} />
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset Config</DialogTitle>
+                  </DialogHeader>
+                  <p>Are you sure you want to reset the config?</p>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <VerbaButton title="Cancel" selected selected_color="bg-warning-verba" onClick={() => setOpenCfg(false)} />
+                    <VerbaButton title="Reset" onClick={() => { setOpenCfg(false); resetConfig(); }} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={openAll} onOpenChange={setOpenAll}>
+                <DialogTrigger asChild>
+                  <div>
+                    <VerbaButton title="Clear Everything" Icon={IoTrash} />
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset Verba</DialogTitle>
+                  </DialogHeader>
+                  <p>Are you sure you want to reset Verba? This will delete all collections related to Verba.</p>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <VerbaButton title="Cancel" selected selected_color="bg-warning-verba" onClick={() => setOpenAll(false)} />
+                    <VerbaButton title="Reset" onClick={() => { setOpenAll(false); resetVerba(); }} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={openSug} onOpenChange={setOpenSug}>
+                <DialogTrigger asChild>
+                  <div>
+                    <VerbaButton title="Clear Suggestions" Icon={IoTrash} />
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset Suggestions</DialogTitle>
+                  </DialogHeader>
+                  <p>Are you sure you want to reset all autocomplete suggestions?</p>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <VerbaButton title="Cancel" selected selected_color="bg-warning-verba" onClick={() => setOpenSug(false)} />
+                    <VerbaButton title="Reset" onClick={() => { setOpenSug(false); resetSuggestions(); }} />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
           <p className="font-bold text-lg">Weaviate Information</p>
@@ -153,7 +209,7 @@ const InfoView: React.FC<InfoViewProps> = ({
             {nodePayload ? (
               <p className="text-text-verba">{nodePayload.weaviate_version}</p>
             ) : (
-              <span className="loading loading-spinner loading-sm"></span>
+              <Spinner />
             )}
           </div>
 
@@ -167,8 +223,8 @@ const InfoView: React.FC<InfoViewProps> = ({
                   {nodePayload.node_count}
                 </p>
               ) : (
-                <span className="loading loading-spinner loading-sm"></span>
-              )}
+              <Spinner />
+            )}
             </div>
 
             {nodePayload ? (
@@ -186,7 +242,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"></span>
+              <Spinner />
             )}
           </div>
 
@@ -200,7 +256,7 @@ const InfoView: React.FC<InfoViewProps> = ({
                   {collectionPayload.collection_count}
                 </p>
               ) : (
-                <span className="loading loading-spinner loading-sm"></span>
+                <Spinner />
               )}
             </div>
 
@@ -217,39 +273,12 @@ const InfoView: React.FC<InfoViewProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="loading loading-dots loading-sm mt-2"></span>
+              <Spinner />
             )}
           </div>
         </div>
       </div>
-      <UserModalComponent
-        modal_id="reset-documents"
-        title="Reset Documents"
-        text="Are you sure you want to reset all documents? This will clear all documents and chunks from Verba."
-        triggerAccept={resetDocuments}
-        triggerString="Reset"
-      />
-      <UserModalComponent
-        modal_id="reset-configs"
-        title="Reset Config"
-        text="Are you sure you want to reset the config?"
-        triggerAccept={resetConfig}
-        triggerString="Reset"
-      />
-      <UserModalComponent
-        modal_id="reset-verba"
-        title="Reset Verba"
-        text="Are you sure you want to reset Verba? This will delete all collections related to Verba."
-        triggerAccept={resetVerba}
-        triggerString="Reset"
-      />
-      <UserModalComponent
-        modal_id="reset-suggestions"
-        title="Reset Suggestions"
-        text="Are you sure you want to reset all autocomplete suggestions?"
-        triggerAccept={resetSuggestions}
-        triggerString="Reset"
-      />
+      <div className="hidden" />
     </div>
   );
 };

@@ -172,7 +172,8 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
               <div>
                 <VerbaButton
                   title="Label"
-                  className="btn-sm min-w-min"
+                  size="sm"
+                  className="min-w-min"
                   icon_size={12}
                   text_class_name="text-xs"
                   Icon={IoMdAddCircle}
@@ -202,7 +203,8 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
                 title={label}
                 key={"FilterDocumentLabel" + index}
                 Icon={MdCancel}
-                className="btn-sm min-w-min max-w-[200px]"
+                size="sm"
+                className="min-w-min max-w-[200px]"
                 icon_size={12}
                 selected_color="bg-primary-verba"
                 selected={true}
@@ -295,7 +297,8 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
             <VerbaButton
               title={"Previous Page"}
               onClick={previousPage}
-              className="btn-sm min-w-min max-w-[200px]"
+              size="sm"
+              className="min-w-min max-w-[200px]"
               text_class_name="text-xs"
               Icon={FaArrowAltCircleLeft}
             />
@@ -305,7 +308,8 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
             <VerbaButton
               title={"Next Page"}
               onClick={nextPage}
-              className="btn-sm min-w-min max-w-[200px]"
+              size="sm"
+              className="min-w-min max-w-[200px]"
               text_class_name="text-xs"
               Icon={FaArrowAltCircleRight}
             />

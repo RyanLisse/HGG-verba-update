@@ -18,6 +18,14 @@ import {
 } from "@/app/types";
 
 import VerbaButton from "@/app/components/Navigation/VerbaButton";
+import { Input } from "@/app/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 
 import { HexColorPicker } from "react-colorful";
 
@@ -147,44 +155,38 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
         <div className="flex gap-3 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">{setting_type.description}</p>
           {setting_type.type === "text" && (
-            <label className="input flex items-center gap-2 w-full border-none bg-bg-verba">
-              <input
-                type="text"
-                className="grow w-full"
-                placeholder={title}
-                value={(selectedTheme as any)[title].text}
-                onChange={(e) => updateValue(title, e.target.value)}
-              />
-            </label>
+            <Input
+              placeholder={String(title)}
+              value={(selectedTheme as any)[title].text}
+              onChange={(e) => updateValue(title, e.target.value)}
+              className="w-full bg-bg-verba"
+            />
           )}
           {setting_type.type === "select" && (
-            <select
+            <Select
               value={(selectedTheme as any)[title].value}
-              onChange={(e) => {
-                updateValue(title, e.target.value);
-              }}
-              className="select bg-bg-verba"
+              onValueChange={(v) => updateValue(title, v)}
             >
-              {setting_type.options.map((template) => (
-                <option key={"Select_" + template} value={template}>
-                  {template}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="bg-bg-verba w-[240px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {setting_type.options.map((template) => (
+                  <SelectItem key={"Select_" + template} value={template}>
+                    {template}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {setting_type.type === "color" && (
             <div className="flex flex-col gap-1 h-[15vh] z-10">
-              <label className="input bg-bg-verba input-sm input-bordered flex items-center gap-2 w-full">
-                <input
-                  type="text"
-                  className="grow"
-                  placeholder={title}
-                  value={(selectedTheme as any)[title].color}
-                  onChange={(e) => {
-                    updateValue(title, e.target.value);
-                  }}
-                />
-              </label>
+              <Input
+                placeholder={String(title)}
+                value={(selectedTheme as any)[title].color}
+                onChange={(e) => updateValue(title, e.target.value)}
+                className="bg-bg-verba w-full"
+              />
               <HexColorPicker
                 color={(selectedTheme as any)[title].color}
                 className="z-1"
@@ -197,15 +199,12 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
           {setting_type.type === "image" && (
             <div className="flex justify-between gap-4 w-full items-center">
               <div className="flex-grow">
-                <label className="input flex items-center text-text-verba gap-2 w-full border-none bg-bg-verba">
-                  <input
-                    type="text"
-                    className="grow"
-                    placeholder="Enter image URL"
-                    value={imageURL}
-                    onChange={(e) => setImageURL(e.target.value)}
-                  />
-                </label>
+                <Input
+                  placeholder="Enter image URL"
+                  value={imageURL}
+                  onChange={(e) => setImageURL(e.target.value)}
+                  className="bg-bg-verba w-full"
+                />
               </div>
               <div className="flex justify-between items-center gap-4">
                 <div className="flex flex-col gap-2">
@@ -246,22 +245,24 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     <div className="flex flex-col w-full h-full p-4">
       <div className="flex justify-between items-center mb-4">
         <p className="text-2xl font-bold">Customize Theme</p>
-        <select
-          className="select bg-bg-verba"
+        <Select
           value={
             Object.keys(themes).find((key) => themes[key] === selectedTheme) ||
             ""
           }
-          onChange={(e) =>
-            setSelectedTheme(themes[e.target.value as keyof typeof themes])
-          }
+          onValueChange={(v) => setSelectedTheme(themes[v as keyof typeof themes])}
         >
-          {Object.keys(themes).map((themeKey) => (
-            <option key={themeKey} value={themeKey}>
-              {themeKey}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="bg-bg-verba w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.keys(themes).map((themeKey) => (
+              <SelectItem key={themeKey} value={themeKey}>
+                {themeKey}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex-grow overflow-y-auto">
         <div className="gap-4 flex flex-col p-4">
