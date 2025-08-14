@@ -12,6 +12,16 @@ import VerbaButton from "../Navigation/VerbaButton";
 import { MdCancel } from "react-icons/md";
 import { IoAddCircleSharp } from "react-icons/io5";
 import { CgDebug } from "react-icons/cg";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
+import { Input } from "@/app/components/ui/input";
+import { Textarea } from "@/app/components/ui/textarea";
+import { Checkbox } from "@/app/components/ui/checkbox";
 
 import ComponentView from "./ComponentView";
 
@@ -105,12 +115,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     [updateFileMap]
   );
 
-  const openDebugModal = () => {
-    const modal = document.getElementById("File_Debug_Modal");
-    if (modal instanceof HTMLDialogElement) {
-      modal.showModal();
-    }
-  };
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const formatByteSize = (bytes: number): string => {
     const sizes = ["B", "KB", "MB", "GB", "TB"];
@@ -239,15 +244,12 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Filename */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Title</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={filename}
-              onChange={handleFilenameChange}
-              disabled={blocked}
-            />
-          </label>
+          <Input
+            value={filename}
+            onChange={handleFilenameChange}
+            disabled={blocked}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
@@ -261,15 +263,12 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Source */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Source Link</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={source}
-              onChange={handleSourceChange}
-              disabled={blocked}
-            />
-          </label>
+          <Input
+            value={source}
+            onChange={handleSourceChange}
+            disabled={blocked}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
@@ -283,24 +282,19 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Labels */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Labels</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={label}
-              onChange={(e) => {
-                setLabel(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addLabel(label);
-                }
-              }}
-              disabled={blocked}
-              title={label}
-            />
-          </label>
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addLabel(label);
+              }
+            }}
+            disabled={blocked}
+            title={label}
+            className="w-full bg-bg-verba"
+          />
           <VerbaButton
             title="Add"
             Icon={IoAddCircleSharp}
@@ -328,15 +322,9 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Overwrite */}
         <div className="flex gap-2 items-center text-text-verba">
           <p className="flex min-w-[8vw]">Overwrite</p>
-          <input
-            type="checkbox"
-            className="checkbox checkbox-md"
-            onChange={(e) =>
-              setOverwrite((e.target as HTMLInputElement).checked)
-            }
-            checked={
-              selectedFileData ? fileMap[selectedFileData].overwrite : false
-            }
+          <Checkbox
+            onCheckedChange={(c) => setOverwrite(Boolean(c))}
+            checked={selectedFileData ? fileMap[selectedFileData].overwrite : false}
             disabled={blocked}
           />
         </div>
@@ -353,8 +341,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Metadata */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Metadata</p>
-          <textarea
-            className="grow w-full textarea flex items-center gap-2 max-h-64 bg-bg-verba"
+          <Textarea
+            className="grow w-full max-h-64 bg-bg-verba"
             value={metadata}
             onChange={handleMetadataChange}
             disabled={blocked}
@@ -375,27 +363,21 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Extension */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Extension</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].extension}
-              disabled={true}
-            />
-          </label>
+          <Input
+            value={fileMap[selectedFileData].extension}
+            disabled={true}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         {/* File Size */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">File Size</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={formatByteSize(fileMap[selectedFileData].file_size)}
-              disabled={true}
-            />
-          </label>
+          <Input
+            value={formatByteSize(fileMap[selectedFileData].file_size)}
+            disabled={true}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="divider  text-text-alt-verba">Ingestion Pipeline</div>
@@ -403,14 +385,11 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Reader */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Reader</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Reader"].selected}
-              disabled={true}
-            />
-          </label>
+          <Input
+            value={fileMap[selectedFileData].rag_config["Reader"].selected}
+            disabled={true}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
@@ -426,14 +405,11 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Chunker */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Chunker</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Chunker"].selected}
-              disabled={true}
-            />
-          </label>
+          <Input
+            value={fileMap[selectedFileData].rag_config["Chunker"].selected}
+            disabled={true}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
@@ -449,14 +425,11 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         {/* Embedder */}
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Embedder</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
-            <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Embedder"].selected}
-              disabled={true}
-            />
-          </label>
+          <Input
+            value={fileMap[selectedFileData].rag_config["Embedder"].selected}
+            disabled={true}
+            className="w-full bg-bg-verba"
+          />
         </div>
 
         <div className="flex gap-2 items-center text-text-verba">
@@ -473,37 +446,30 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
 
         <div className="flex gap-2 justify-between items-center text-text-verba">
           <p className="flex min-w-[8vw]">Debug</p>
-          <VerbaButton
-            Icon={CgDebug}
-            onClick={openDebugModal}
-            className="max-w-min"
-          />
+          <Dialog open={debugOpen} onOpenChange={setDebugOpen}>
+            <DialogTrigger asChild>
+              <div>
+                <VerbaButton Icon={CgDebug} className="max-w-min" />
+              </div>
+            </DialogTrigger>
+            <DialogContent className="min-w-fit">
+              <DialogHeader>
+                <DialogTitle>Debugging File Configuration</DialogTitle>
+              </DialogHeader>
+              <pre className="whitespace-pre-wrap text-xs">
+                {selectedFileData
+                  ? (() => {
+                      const objCopy = { ...fileMap[selectedFileData] };
+                      objCopy.content = "File Content";
+                      return JSON.stringify(objCopy, null, 2);
+                    })()
+                  : ""}
+              </pre>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <dialog id={"File_Debug_Modal"} className="modal">
-          <div className="modal-box min-w-fit">
-            <h3 className="font-bold text-lg">Debugging File Configuration</h3>
-            <pre className="whitespace-pre-wrap text-xs">
-              {selectedFileData
-                ? (() => {
-                    // Create a shallow copy of the object
-                    const objCopy = { ...fileMap[selectedFileData] };
-                    // Delete the `content` property
-                    objCopy.content = "File Content";
-                    // Convert to a pretty-printed JSON string
-                    return JSON.stringify(objCopy, null, 2);
-                  })()
-                : ""}
-            </pre>
-            <div className="modal-action">
-              <form method="dialog">
-                <button className="btn text-text-verba bg-warning-verba border-none hover:bg-button-hover-verba ml-2">
-                  Close
-                </button>
-              </form>
-            </div>
-          </div>
-        </dialog>
+        {/* Debug dialog migrated to shadcn/ui Dialog above */}
       </div>
     );
   } else {

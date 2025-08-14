@@ -43,6 +43,14 @@ import {
 import { Actions, Action } from "@/components/ai-elements/actions";
 import { logTrace } from "@/app/lib/langsmith";
 import Reasoning from "@/components/ai-elements/reasoning";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import { Spinner } from "@/app/components/ui/spinner";
+import { Textarea } from "@/app/components/ui/textarea";
 
 interface ChatInterfaceProps {
   credentials: Credentials;
@@ -442,44 +450,35 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <div className="sticky flex flex-col gap-2 top-0 z-9 p-4 backdrop-blur-sm bg-opacity-30 bg-bg-alt-verba rounded-lg">
             <div className="flex gap-2 justify-start items-center">
               <div className="flex gap-2">
-                <div className="dropdown dropdown-hover">
-                  <label tabIndex={0}>
-                    <VerbaButton
-                      title="Label"
-                      className="btn-sm min-w-min"
-                      icon_size={12}
-                      text_class_name="text-xs"
-                      Icon={IoMdAddCircle}
-                      selected={false}
-                      disabled={false}
-                    />
-                  </label>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-                  >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div>
+                      <VerbaButton
+                        title="Label"
+                        className="btn-sm min-w-min"
+                        icon_size={12}
+                        text_class_name="text-xs"
+                        Icon={IoMdAddCircle}
+                        selected={false}
+                        disabled={false}
+                      />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-52">
                     {labels.map((label, index) => (
-                      <li key={"Label" + index}>
-                        <a
-                          onClick={() => {
-                            if (!filterLabels.includes(label)) {
-                              setFilterLabels([...filterLabels, label]);
-                            }
-                            const dropdownElement =
-                              document.activeElement as HTMLElement;
-                            dropdownElement.blur();
-                            const dropdown = dropdownElement.closest(
-                              ".dropdown"
-                            ) as HTMLElement;
-                            if (dropdown) dropdown.blur();
-                          }}
-                        >
-                          {label}
-                        </a>
-                      </li>
+                      <DropdownMenuItem
+                        key={"Label" + index}
+                        onClick={() => {
+                          if (!filterLabels.includes(label)) {
+                            setFilterLabels([...filterLabels, label]);
+                          }
+                        }}
+                      >
+                        {label}
+                      </DropdownMenuItem>
                     ))}
-                  </ul>
-                </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               {(filterLabels.length > 0 || documentFilter.length > 0) && (
                 <VerbaButton
@@ -605,20 +604,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           {isFetching.current && (
             <div className="flex flex-col gap-2 px-4">
               <div className="flex items-center gap-3">
-                <span className="text-text-alt-verba loading loading-dots loading-md"></span>
+                <Spinner className="text-text-alt-verba" />
                 <p className="text-text-alt-verba">
                   {fetchingStatus === "CHUNKS" && "Retrieving..."}
                   {fetchingStatus === "RESPONSE" && "Generating..."}
                 </p>
-                <button
+                <VerbaButton
+                  circle
+                  className="btn-sm"
+                  Icon={MdCancel}
                   onClick={() => {
                     setFetchingStatus("DONE");
                     isFetching.current = false;
                   }}
-                  className="btn btn-circle btn-sm bg-bg-alt-verba hover:bg-warning-verba hover:text-text-verba text-text-alt-verba shadow-none border-none text-sm"
-                >
-                  <MdCancel size={15} />
-                </button>
+                />
               </div>
             </div>
           )}
@@ -640,8 +639,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {socketOnline ? (
           <div className="flex gap-2 items-center justify-end w-full relative">
             <div className="relative w-full">
-              <textarea
-                className="textarea textarea-bordered w-full bg-bg-verba placeholder-text-alt-verb min-h min-h-[40px] max-h-[150px] overflow-y-auto"
+              <Textarea
+                className="w-full bg-bg-verba placeholder-text-alt-verb min-h-[40px] max-h-[150px] overflow-y-auto"
                 placeholder={
                   currentDatacount > 0
                     ? currentDatacount >= 100
@@ -724,14 +723,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </div>
         ) : (
           <div className="flex gap-2 items-center justify-end w-full">
-            <button
-              onClick={reconnectToVerba}
-              className="flex btn border-none text-text-verba bg-button-verba hover:bg-button-hover-verba gap-2 items-center"
-            >
-              <TbPlugConnected size={15} />
-              <p>Reconnecting...</p>
-              <span className="loading loading-spinner loading-xs"></span>
-            </button>
+            <div className="flex gap-2 items-center">
+              <VerbaButton onClick={reconnectToVerba} Icon={TbPlugConnected} title="Reconnecting..." />
+              <Spinner />
+            </div>
           </div>
         )}
       </div>

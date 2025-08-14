@@ -2,6 +2,8 @@
 
 import React from "react";
 import { FaStar } from "react-icons/fa";
+import { Button } from "@/app/components/ui/button";
+import { Spinner } from "@/app/components/ui/spinner";
 
 interface VerbaButtonProps {
   title?: string;
@@ -22,6 +24,7 @@ interface VerbaButtonProps {
   text_size?: string;
   icon_size?: number;
   onClickParams?: any[]; // New prop to pass additional parameters
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
 const VerbaButton: React.FC<VerbaButtonProps> = ({
@@ -43,14 +46,33 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
   loading = false,
   circle = false,
   onClickParams = [],
+  size,
 }) => {
+  // Heuristic: map common DaisyUI size classes when present in className.
+  const derivedSize: "default" | "sm" | "lg" | "icon" | undefined =
+    size ||
+    (className?.includes("btn-sm")
+      ? "sm"
+      : className?.includes("btn-lg")
+      ? "lg"
+      : className?.includes("btn-square") || className?.includes("btn-circle")
+      ? "icon"
+      : undefined);
+
   return (
-    <button
+    <Button
       type={type}
       key={key}
+      size={derivedSize}
       className={
         className +
-        ` p-3 transition-all active:scale-95 scale-100 duration-300 flex gap-1 items-center justify-center ${circle ? "rounded-full" : "rounded-lg"} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba text-text-alt-verba-button"} `
+        ` transition-all active:scale-95 scale-100 duration-300 flex gap-1 items-center justify-center ${
+          circle ? "rounded-full" : "rounded-lg"
+        } hover:bg-button-hover-verba hover:text-text-verba-button ${
+          selected
+            ? selected_color + " shadow-md " + selected_text_color
+            : " bg-button-verba text-text-alt-verba-button"
+        } `
       }
       onClick={(e) => onClick(e, ...onClickParams)}
       disabled={disabled}
@@ -58,7 +80,7 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
       onMouseLeave={onMouseLeave}
     >
       {loading ? (
-        <span className="text-text-verba-button loading loading-spinner loading-xs"></span>
+        <Spinner size={14} className="text-text-verba-button" />
       ) : (
         <>
           {Icon && <Icon size={icon_size} className="w-[20px]" />}
@@ -69,7 +91,7 @@ const VerbaButton: React.FC<VerbaButtonProps> = ({
           )}
         </>
       )}
-    </button>
+    </Button>
   );
 };
 

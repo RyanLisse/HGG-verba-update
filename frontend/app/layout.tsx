@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
   title: "Verba",
@@ -15,7 +16,9 @@ export default function RootLayout({
     <html lang="en">
       <link rel="icon" href="icon.ico" />
       <link rel="icon" href="static/icon.ico" />
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

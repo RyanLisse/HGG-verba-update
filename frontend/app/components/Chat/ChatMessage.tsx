@@ -18,6 +18,13 @@ import { Actions, Action } from "@/components/ai-elements/actions";
 import { logFeedback } from "@/app/lib/langsmith";
 
 import { Theme } from "@/app/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/app/components/ui/dialog";
 
 interface ChatMessageProps {
   message: Message;
@@ -119,6 +126,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       </div>
     );
   } else {
+    const [open, setOpen] = React.useState(false);
     return (
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 w-full items-center">
         {message.content.map((document, index) => (
@@ -147,30 +155,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             </div>
           </button>
         ))}
-        <VerbaButton
-          Icon={IoDocumentAttach}
-          className="btn-sm btn-square"
-          onClick={() =>
-            (
-              document.getElementById(
-                "context-modal-" + message_index
-              ) as HTMLDialogElement
-            ).showModal()
-          }
-        />
-        <dialog id={"context-modal-" + message_index} className="modal">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">Context</h3>
-            <p className="py-4">{message.context}</p>
-            <div className="modal-action">
-              <form method="dialog">
-                <button className="btn focus:outline-none text-text-alt-verba bg-button-verba hover:bg-button-hover-verba hover:text-text-verba border-none shadow-none">
-                  <p>Close</p>
-                </button>
-              </form>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <div>
+              <VerbaButton Icon={IoDocumentAttach} className="btn-sm btn-square" />
             </div>
-          </div>
-        </dialog>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Context</DialogTitle>
+            </DialogHeader>
+            <p className="py-2 text-sm whitespace-pre-wrap">{message.context}</p>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

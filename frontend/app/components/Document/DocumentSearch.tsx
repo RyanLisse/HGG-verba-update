@@ -5,7 +5,7 @@ import {
   Credentials,
   DocumentsPreviewPayload,
 } from "@/app/types";
-import { retrieveAllDocuments, deleteDocument } from "@/app/api";
+import { deleteDocument } from "@/app/api";
 import { FaSearch, FaTrash } from "react-icons/fa";
 import { MdOutlineRefresh, MdCancel } from "react-icons/md";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
@@ -13,6 +13,15 @@ import InfoComponent from "../Navigation/InfoComponent";
 import UserModalComponent from "../Navigation/UserModal";
 import VerbaButton from "../Navigation/VerbaButton";
 import { IoMdAddCircle } from "react-icons/io";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+import { Input } from "@/app/components/ui/input";
+import { Spinner } from "@/app/components/ui/spinner";
+import { useDocumentsQuery, useDeleteDocumentMutation } from "@/app/lib/queries";
 
 interface DocumentSearchComponentProps {
   selectedDocument: string | null;
@@ -33,18 +42,27 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   credentials,
 }) => {
   const [userInput, setUserInput] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [page, setPage] = useState(1);
-
-  const [documents, setDocuments] = useState<DocumentPreview[] | null>([]);
-  const [totalDocuments, setTotalDocuments] = useState(0);
 
   const pageSize = 50;
 
-  const [labels, setLabels] = useState<string[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [triggerSearch, setTriggerSearch] = useState(false);
 
-  const [isFetching, setIsFetching] = useState(false);
+  // Query: documents + labels
+  const { data, isFetching } = useDocumentsQuery(
+    credentials,
+    submittedQuery,
+    selectedLabels,
+    page,
+    pageSize
+  );
+  const documents = data?.documents ?? [];
+  const labels = data?.labels ?? [];
+  const totalDocuments = data?.totalDocuments ?? 0;
+
+  // Delete mutation
+  const deleteMutation = useDeleteDocumentMutation(credentials);
 
   const nextPage = () => {
     if (!documents) {
@@ -69,53 +87,15 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     }
   };
 
-  const fetchAllDocuments = async (_userInput?: string) => {
-    try {
-      setIsFetching(true);
-
-      const data: DocumentsPreviewPayload | null = await retrieveAllDocuments(
-        _userInput ? _userInput : "",
-        selectedLabels,
-        page,
-        pageSize,
-        credentials
-      );
-
-      if (data) {
-        if (data.error !== "") {
-          console.error(data.error);
-          setIsFetching(false);
-          setDocuments(null);
-          setTotalDocuments(0);
-        } else {
-          setDocuments(data.documents);
-          setLabels(data.labels);
-          setIsFetching(false);
-          setTotalDocuments(data.totalDocuments);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
-      setIsFetching(false);
-    }
-  };
-
-  useEffect(() => {
-    setTriggerSearch(true);
-  }, []);
-
-  useEffect(() => {
-    fetchAllDocuments(userInput);
-  }, [page, triggerSearch, selectedLabels]);
-
   const handleSearch = () => {
-    fetchAllDocuments(userInput);
+    setSubmittedQuery(userInput);
   };
 
   const clearSearch = () => {
     setUserInput("");
     setSelectedLabels([]);
-    fetchAllDocuments("");
+    setSubmittedQuery("");
+    setPage(1);
   };
 
   const handleKeyDown = (e: any) => {
@@ -129,13 +109,13 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     if (production == "Demo") {
       return;
     }
-    const response = await deleteDocument(d, credentials);
+    const response = await deleteMutation.mutateAsync(d);
     addStatusMessage("Deleted document", "WARNING");
     if (response) {
       if (d == selectedDocument) {
         setSelectedDocument(null);
       }
-      fetchAllDocuments(userInput);
+      // invalidation handled in mutation
     }
   };
 
@@ -165,18 +145,15 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
           />
         </div>
 
-        <label className="input flex items-center gap-2 w-full bg-bg-verba">
-          <input
-            type="text"
-            className="grow w-full"
-            onKeyDown={handleKeyDown}
-            placeholder={`Search for documents (${totalDocuments})`}
-            value={userInput}
-            onChange={(e) => {
-              setUserInput(e.target.value);
-            }}
-          />
-        </label>
+        <Input
+          className="w-full bg-bg-verba"
+          onKeyDown={handleKeyDown}
+          placeholder={`Search for documents (${totalDocuments})`}
+          value={userInput}
+          onChange={(e) => {
+            setUserInput(e.target.value);
+          }}
+        />
 
         <VerbaButton onClick={handleSearch} Icon={FaSearch} />
         <VerbaButton
@@ -189,44 +166,35 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
       {/* Document List */}
       <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 gap-3 items-center h-full w-full overflow-auto">
         <div className="flex flex-col w-full justify-start gap-2">
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
-              <VerbaButton
-                title="Label"
-                className="btn-sm min-w-min"
-                icon_size={12}
-                text_class_name="text-xs"
-                Icon={IoMdAddCircle}
-                selected={false}
-                disabled={false}
-              />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div>
+                <VerbaButton
+                  title="Label"
+                  className="btn-sm min-w-min"
+                  icon_size={12}
+                  text_class_name="text-xs"
+                  Icon={IoMdAddCircle}
+                  selected={false}
+                  disabled={false}
+                />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-52">
               {labels.map((label, index) => (
-                <li key={"Label" + index}>
-                  <a
-                    onClick={() => {
-                      if (!selectedLabels.includes(label)) {
-                        setSelectedLabels([...selectedLabels, label]);
-                      }
-                      const dropdownElement =
-                        document.activeElement as HTMLElement;
-                      dropdownElement.blur();
-                      const dropdown = dropdownElement.closest(
-                        ".dropdown"
-                      ) as HTMLElement;
-                      if (dropdown) dropdown.blur();
-                    }}
-                  >
-                    {label}
-                  </a>
-                </li>
+                <DropdownMenuItem
+                  key={"Label" + index}
+                  onClick={() => {
+                    if (!selectedLabels.includes(label)) {
+                      setSelectedLabels([...selectedLabels, label]);
+                    }
+                  }}
+                >
+                  {label}
+                </DropdownMenuItem>
               ))}
-            </ul>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="flex flex-wrap gap-2">
             {selectedLabels.map((label, index) => (
               <VerbaButton
@@ -249,7 +217,9 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
         {isFetching && (
           <div className="flex items-center justify-center gap-2">
-            <span className="loading loading-spinner loading-sm text-text-alt-verba"></span>
+            <span className="text-text-alt-verba">
+              <Spinner />
+            </span>
           </div>
         )}
 

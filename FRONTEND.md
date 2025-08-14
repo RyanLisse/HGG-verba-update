@@ -1,6 +1,18 @@
 # Verba - Frontend Documentation
 
-Verba's Frontend is a [NextJS](https://nextjs.org/) application used together with [TailwindCSS](https://tailwindcss.com/) and [DaisyUI](https://daisyui.com/).
+Verba's Frontend is a [NextJS](https://nextjs.org/) application using [TailwindCSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/) (Radix + Tailwind) components.
+
+## Data Fetching & Caching (TanStack Query)
+
+- Wrapped the app in `QueryClientProvider` (`app/providers.tsx`), included Devtools.
+- Common queries live in `app/lib/queries.ts` (documents, labels, RAG config, datacount, delete mutation).
+- Example usage: `DocumentSearch` now uses `useDocumentsQuery` to fetch and paginate without `useEffect`.
+
+## UI Migration Notes
+
+- New primitives in `app/components/ui` mirror shadcn/ui (button, dialog, dropdown, input, textarea, checkbox, select, badge, card, spinner, etc.).
+- We are incrementally replacing DaisyUI classes with shadcn/ui components. During transition, some DaisyUI utility classes may appear; these will be removed as we complete migration.
+- For complex layouts/interactions, we take inspiration from Kibo UI, Origin UI, and Blocks, while keeping shadcn primitives for consistency.
 
 ## 🚀 Setting Up the Frontend
 
