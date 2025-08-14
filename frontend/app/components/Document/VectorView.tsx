@@ -28,7 +28,7 @@ import {
 
 import { colors } from "./util";
 
-extend({ OrbitControls: OrbitControls });
+extend({ OrbitControls: OrbitControls as any });
 
 const Sphere: React.FC<{
   vector: VerbaVector;

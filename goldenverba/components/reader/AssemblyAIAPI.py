@@ -2,16 +2,16 @@ import base64
 import io
 import os
 
-import requests
-from wasabi import msg
 import aiohttp
 import assemblyai as aai
+import requests
+from wasabi import msg
 
 from goldenverba.components.document import Document, create_document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
-from goldenverba.components.util import get_environment
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
+from goldenverba.server.types import FileConfig
 
 
 class AssemblyAIReader(Reader):
@@ -131,7 +131,7 @@ class AssemblyAIReader(Reader):
 
         except requests.RequestException as e:
             raise Exception(
-                f"AssemblyAI API request failed for {fileConfig.filename}: {str(e)}"
+                f"AssemblyAI API request failed for {fileConfig.filename}: {e!s}"
             )
         except Exception as e:
-            raise Exception(f"Failed to process {fileConfig.filename}: {str(e)}")
+            raise Exception(f"Failed to process {fileConfig.filename}: {e!s}")

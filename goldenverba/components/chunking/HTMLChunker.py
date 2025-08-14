@@ -4,9 +4,8 @@ with contextlib.suppress(Exception):
     from langchain_text_splitters import HTMLHeaderTextSplitter
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
-from goldenverba.components.interfaces import Embedding
+from goldenverba.components.interfaces import Chunker, Embedding
 
 
 class HTMLChunker(Chunker):

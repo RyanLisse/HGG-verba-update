@@ -1,9 +1,11 @@
 import json
 import os
+from collections.abc import AsyncGenerator
+from typing import Any
+
 import aiohttp
-from typing import Any, AsyncGenerator, List, Dict
-from wasabi import msg
 import requests
+from wasabi import msg
 
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
@@ -57,11 +59,11 @@ class GroqGenerator(Generator):
 
     async def generate_stream(
         self,
-        config: Dict,
+        config: dict,
         query: str,
         context: str,
-        conversation: List[Dict[str, Any]] = [],
-    ) -> AsyncGenerator[Dict, None]:
+        conversation: list[dict[str, Any]] = [],
+    ) -> AsyncGenerator[dict, None]:
         model = config.get("Model").value
         api_key = get_environment(
             config, "API Key", "GROQ_API_KEY", "No Groq API Key found"
@@ -109,9 +111,9 @@ class GroqGenerator(Generator):
         self,
         query: str,
         context: str,
-        conversation: List[Dict[str, Any]],
+        conversation: list[dict[str, Any]],
         system_message: str,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """
         Prepare the message list for the Groq API request.
         """
@@ -129,7 +131,7 @@ class GroqGenerator(Generator):
         return messages
 
     @staticmethod
-    def _process_response(line: bytes) -> Dict[str, str]:
+    def _process_response(line: bytes) -> dict[str, str]:
         """
         Process a single line of response from the Groq API.
         """
@@ -159,12 +161,12 @@ class GroqGenerator(Generator):
             raise e
 
     @staticmethod
-    def _error_response(message: str) -> Dict[str, str]:
+    def _error_response(message: str) -> dict[str, str]:
         """Return an error response."""
         return {"message": message, "finish_reason": "stop"}
 
 
-def get_models(url: str, api_key: str) -> List[str]:
+def get_models(url: str, api_key: str) -> list[str]:
     """
     Fetch online and return available Groq models if api_key is not empty and valid.
     Else, return offline default model list.
@@ -183,11 +185,11 @@ def get_models(url: str, api_key: str) -> List[str]:
             return DEFAULT_MODEL_LIST
         return models
 
-    except Exception as e:
+    except Exception:
         return DEFAULT_MODEL_LIST
 
 
-def filter_models(models: List[str]) -> List[str]:
+def filter_models(models: list[str]) -> list[str]:
     """
     Filters out models that are not LLMs
     (As Groq API doesn't provide a way to identify them, this function will probably evolve with custom filtering rules)

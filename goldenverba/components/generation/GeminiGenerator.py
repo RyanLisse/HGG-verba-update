@@ -2,11 +2,10 @@ import os
 
 try:
     import vertexai.preview
-    from vertexai.preview.generative_models import GenerativeModel, Content, Part
+    from vertexai.preview.generative_models import Content, GenerativeModel, Part
 except:
     pass
 
-from wasabi import msg
 
 from dotenv import load_dotenv
 
@@ -93,7 +92,6 @@ class GeminiGenerator(Generator):
                     "message": "",
                     "finish_reason": "stop",
                 }
-                pass
 
         except Exception:
             raise

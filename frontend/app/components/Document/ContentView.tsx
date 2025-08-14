@@ -129,7 +129,7 @@ const ContentView: React.FC<ContentViewProps> = ({
           <ReactMarkdown
             className="max-w-[50vw] items-center justify-center flex-wrap prose-sm p-3 prose-pre:bg-bg-alt-verba"
             components={{
-              code({ node, inline, className, children, ...props }) {
+              code({ node, inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || "");
                 return !inline && match ? (
                   <SyntaxHighlighter
@@ -185,7 +185,7 @@ const ContentView: React.FC<ContentViewProps> = ({
           <ReactMarkdown
             className="w-full items-center justify-center flex-wrap md:prose-base sm:prose-sm p-3 prose-pre:bg-bg-alt-verba"
             components={{
-              code({ node, inline, className, children, ...props }) {
+              code({ node, inline, className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || "");
                 return !inline && match ? (
                   <SyntaxHighlighter

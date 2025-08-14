@@ -1,6 +1,7 @@
 from weaviate import Client
-from goldenverba.components.interfaces import Embedder
+
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Embedder
 
 
 class GoogleEmbedder(Embedder):

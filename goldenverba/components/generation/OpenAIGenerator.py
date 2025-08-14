@@ -1,12 +1,13 @@
+import json
 import os
+
+import httpx
 from dotenv import load_dotenv
+from wasabi import msg
+
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment, get_token
-from typing import List
-import httpx
-import json
-from wasabi import msg
 
 load_dotenv()
 
@@ -192,7 +193,7 @@ class OpenAIGenerator(Generator):
                                     yield {"message": "", "finish_reason": choice["finish_reason"]}
                 except Exception as e:
                     # If anything goes wrong, try Chat Completions as a safety net
-                    msg.warn(f"Responses stream error: {str(e)}; falling back")
+                    msg.warn(f"Responses stream error: {e!s}; falling back")
                     async for item in self._chat_completions_stream(
                         headers, openai_url, model, messages
                     ):
@@ -257,7 +258,7 @@ class OpenAIGenerator(Generator):
 
         return messages
 
-    def get_models(self, token: str, url: str) -> List[str]:
+    def get_models(self, token: str, url: str) -> list[str]:
         """Fetch available chat/generation models from OpenAI API."""
         default_models = [
             "gpt-5.1",
@@ -294,5 +295,5 @@ class OpenAIGenerator(Generator):
             models.sort(key=lambda m: priority.get(m, 100))
             return models
         except Exception as e:
-            msg.info(f"Failed to fetch OpenAI models: {str(e)}")
+            msg.info(f"Failed to fetch OpenAI models: {e!s}")
             return default_models

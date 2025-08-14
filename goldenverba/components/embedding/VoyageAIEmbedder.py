@@ -1,7 +1,4 @@
 import os
-import json
-from typing import List
-import io
 
 import aiohttp
 from wasabi import msg
@@ -50,7 +47,7 @@ class VoyageAIEmbedder(Embedding):
                 values=[],
             )
 
-    async def vectorize(self, config: dict, content: List[str]) -> List[List[float]]:
+    async def vectorize(self, config: dict, content: list[str]) -> list[list[float]]:
         """Vectorize the input content using VoyageAI's API."""
         model = config.get("Model").value
         api_key = get_environment(
@@ -94,14 +91,14 @@ class VoyageAIEmbedder(Embedding):
             except aiohttp.ClientError as e:
                 if isinstance(e, aiohttp.ClientResponseError) and e.status == 429:
                     raise Exception("Rate limit exceeded. Waiting before retrying...")
-                raise Exception(f"API request failed: {str(e)}")
+                raise Exception(f"API request failed: {e!s}")
 
             except Exception as e:
-                msg.fail(f"Unexpected error: {type(e).__name__} - {str(e)}")
+                msg.fail(f"Unexpected error: {type(e).__name__} - {e!s}")
                 raise
 
     @staticmethod
-    def get_models(token: str, url: str) -> List[str]:
+    def get_models(token: str, url: str) -> list[str]:
         """Fetch available embedding models from VoyageAI API."""
         return [
             "voyage-2",

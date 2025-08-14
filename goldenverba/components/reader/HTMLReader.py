@@ -1,16 +1,15 @@
 import base64
-import aiohttp
-from typing import Tuple, List
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+import aiohttp
+from bs4 import BeautifulSoup
 from wasabi import msg
 
 from goldenverba.components.document import Document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
 from goldenverba.components.reader.BasicReader import BasicReader
 from goldenverba.components.types import InputConfig
+from goldenverba.server.types import FileConfig
 
 try:
     from markdownify import markdownify as md
@@ -85,7 +84,7 @@ class HTMLReader(Reader):
                         processed_urls,
                     )
                 except Exception as e:
-                    msg.warn(f"Failed to process URL {url}: {str(e)}")
+                    msg.warn(f"Failed to process URL {url}: {e!s}")
 
         return documents
 
@@ -99,7 +98,7 @@ class HTMLReader(Reader):
         session: aiohttp.ClientSession,
         reader: BasicReader,
         fileConfig: FileConfig,
-        documents: List[Document],
+        documents: list[Document],
         processed_urls: set,
     ):
         if url in processed_urls or current_depth > max_depth:
@@ -145,11 +144,11 @@ class HTMLReader(Reader):
                         processed_urls,
                     )
         except Exception as e:
-            msg.warn(f"Failed to process URL {url}: {str(e)}")
+            msg.warn(f"Failed to process URL {url}: {e!s}")
 
     async def fetch_html_and_convert(
         self, session: aiohttp.ClientSession, url: str, to_markdown: bool
-    ) -> Tuple[str, int, str]:
+    ) -> tuple[str, int, str]:
         """
         Fetches the HTML content of the given URL and optionally converts it to Markdown.
 
@@ -174,11 +173,11 @@ class HTMLReader(Reader):
             return base64_content, len(content), html_content
 
         except aiohttp.ClientError as e:
-            raise Exception(f"Failed to fetch HTML content from URL: {str(e)}")
+            raise Exception(f"Failed to fetch HTML content from URL: {e!s}")
         except ImportError as e:
-            raise Exception(f"Markdown conversion failed: {str(e)}")
+            raise Exception(f"Markdown conversion failed: {e!s}")
 
-    def extract_links(self, html_content: str, base_url: str) -> List[str]:
+    def extract_links(self, html_content: str, base_url: str) -> list[str]:
         """
         Extracts links from the HTML content and returns absolute URLs.
 

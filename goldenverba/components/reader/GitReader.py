@@ -1,17 +1,16 @@
-import aiohttp
+import base64
 import os
 import urllib
-import base64
 
+import aiohttp
 from wasabi import msg
 
 from goldenverba.components.document import Document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
 from goldenverba.components.reader.BasicReader import BasicReader
-from goldenverba.components.util import get_environment
-
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
+from goldenverba.server.types import FileConfig
 
 
 class GitReader(Reader):
@@ -121,7 +120,7 @@ class GitReader(Reader):
                     document = await reader.load(config, new_file_config)
                     documents.append(document[0])
             except Exception as e:
-                raise Exception(f"Couldn't load retrieve {_file}: {str(e)}")
+                raise Exception(f"Couldn't load retrieve {_file}: {e!s}")
 
         return documents
 
@@ -194,10 +193,9 @@ class GitReader(Reader):
                         f"https://gitlab.com/{owner}/{name}/-/blob/{branch}/{file_path}"
                     )
                     return content_b64, link, size, extension
-                else:
-                    raise Exception(
-                        f"Failed to download file: {response.status} {await response.text()}"
-                    )
+                raise Exception(
+                    f"Failed to download file: {response.status} {await response.text()}"
+                )
 
     def get_headers(self, token: str, platform: str) -> dict:
         if platform == "GitHub":
@@ -205,7 +203,7 @@ class GitReader(Reader):
                 "Authorization": f"token {token}",
                 "Accept": "application/vnd.github.v3+json",
             }
-        else:  # GitLab
-            return {
-                "Authorization": f"Bearer {token}",
-            }
+        # GitLab
+        return {
+            "Authorization": f"Bearer {token}",
+        }

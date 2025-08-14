@@ -1,17 +1,16 @@
-import base64
-import aiohttp
 import asyncio
+import base64
 import os
-from typing import List, Tuple
 
+import aiohttp
 from wasabi import msg
 
 from goldenverba.components.document import Document
 from goldenverba.components.interfaces import Reader
-from goldenverba.server.types import FileConfig
 from goldenverba.components.reader.BasicReader import BasicReader
-from goldenverba.components.util import get_environment
 from goldenverba.components.types import InputConfig
+from goldenverba.components.util import get_environment
+from goldenverba.server.types import FileConfig
 
 
 class FirecrawlReader(Reader):
@@ -47,7 +46,7 @@ class FirecrawlReader(Reader):
                 values=[],
             )
 
-    async def load(self, config: dict, fileConfig: FileConfig) -> List[Document]:
+    async def load(self, config: dict, fileConfig: FileConfig) -> list[Document]:
         """
         Load documents from URLs using Firecrawl API.
         """
@@ -98,8 +97,8 @@ class FirecrawlReader(Reader):
         return await response.json()
 
     async def firecrawl(
-        self, mode: str, urls: List[str], token: str
-    ) -> List[Tuple[str, str, str]]:
+        self, mode: str, urls: list[str], token: str
+    ) -> list[tuple[str, str, str]]:
         """
         Perform scraping or crawling using Firecrawl API.
         """
@@ -125,7 +124,7 @@ class FirecrawlReader(Reader):
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for result in results:
                 if isinstance(result, Exception):
-                    msg.warn(f"Failed to process URL: {str(result)}")
+                    msg.warn(f"Failed to process URL: {result!s}")
                 else:
                     documents.extend(result)
 
@@ -142,7 +141,7 @@ class FirecrawlReader(Reader):
         scrape_url: str,
         headers: dict,
         request_data: dict,
-    ) -> List[Tuple[str, str, str]]:
+    ) -> list[tuple[str, str, str]]:
         """
         Scrape a single URL using Firecrawl API.
         """
@@ -166,7 +165,7 @@ class FirecrawlReader(Reader):
         crawl_url: str,
         headers: dict,
         request_data: dict,
-    ) -> List[Tuple[str, str, str]]:
+    ) -> list[tuple[str, str, str]]:
         """
         Handle the crawling process for a single URL.
         """
@@ -194,7 +193,7 @@ class FirecrawlReader(Reader):
         headers: dict,
         job_id: str,
         start_time: float,
-    ) -> List[Tuple[str, str, str]]:
+    ) -> list[tuple[str, str, str]]:
         """
         Poll the job status and retrieve results when completed.
         """

@@ -1,11 +1,11 @@
-from goldenverba.server.types import FileConfig
-from goldenverba.components.chunk import Chunk
-from spacy.tokens import Doc
-from spacy.language import Language
-import spacy
 import json
 
+import spacy
 from langdetect import detect
+from spacy.tokens import Doc
+
+from goldenverba.components.chunk import Chunk
+from goldenverba.server.types import FileConfig
 
 
 def load_nlp_for_language(language: str):
@@ -36,7 +36,7 @@ def detect_language(text: str) -> str:
         detected_lang = detect(text)
         if detected_lang == "zh-cn":
             return "zh"
-        elif detected_lang == "zh-tw" or detected_lang == "zh-hk":
+        if detected_lang == "zh-tw" or detected_lang == "zh-hk":
             return "zh-hant"
         return detected_lang
     except:
@@ -126,8 +126,7 @@ class Document:
                 metadata=doc_dict.get("metadata", ""),
             )
             return document
-        else:
-            return None
+        return None
 
 
 def create_document(content: str, fileConfig: FileConfig) -> Document:

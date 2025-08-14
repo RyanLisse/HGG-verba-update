@@ -435,6 +435,14 @@ Your contributions are always welcome! Feel free to contribute ideas, feedback, 
 
 You can learn more about Verba's architecture and implementation in its [technical documentation](./TECHNICAL.md) and [frontend documentation](./FRONTEND.md). It's recommended to have a look at them before making any contributions.
 
+## Development tooling
+
+- Astral uv: https://docs.astral.sh/uv
+- Ruff (lint/format): https://docs.astral.sh/ruff/
+- Ty (type checker, preview): https://docs.astral.sh/ty/
+- Qlty guide: see qlty-docs-guide.md
+- Migration plan: see MIGRATION-ASTRAL-STACK.md
+
 ## Known Issues
 
 - **Weaviate Embeeded** currently not working on Windows yet

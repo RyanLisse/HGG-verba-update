@@ -70,13 +70,13 @@ const VerbaThree = ({
       const gui = new GUI();
       const materialFolder = gui.addFolder("Material");
 
-      materialFolder.add(material, "roughness", 0, 1).name("roughness");
-      materialFolder.add(material, "metalness", 0, 1).name("metalness");
-      materialFolder.add(material, "clearcoat", 0, 1).name("clearcoat");
+      materialFolder.add(material as any, "roughness", 0, 1).name("roughness");
+      materialFolder.add(material as any, "metalness", 0, 1).name("metalness");
+      materialFolder.add(material as any, "clearcoat", 0, 1).name("clearcoat");
       materialFolder
-        .add(material, "clearcoatRoughness", 0, 1)
+        .add(material as any, "clearcoatRoughness", 0, 1)
         .name("clearcoatRoughness");
-      materialFolder.addColor(material, "color").name("color");
+      materialFolder.addColor(material as any, "color").name("color");
       return () => {
         gui.destroy();
       };
@@ -107,8 +107,7 @@ const VerbaThree = ({
         rotation={[0.13, 0.1, 0]}
         polar={[-0.4, 0.2]}
         azimuth={[-1, 0.75]}
-        config={{ mass: 2, tension: 400 }}
-        snap={{ mass: 4, tension: 400 }}
+        snap={{ mass: 4, tension: 400 } as any}
       >
         <Float speed={2} rotationIntensity={1}>
           <primitive
@@ -219,14 +218,14 @@ const LoginView: React.FC<LoginViewProps> = ({
   return (
     <div className="w-screen h-screen bg-white">
       <div
-        className={`flex w-full h-full transition-opacity duration-1000 ${
+        className={`flex size-full transition-opacity duration-1000 ${
           isLoading ? "opacity-0" : "opacity-100"
         }`}
       >
         <div className="hidden md:flex md:w-1/2 lg:w-3/5 h-full">
           <Canvas
             camera={{ position: [0, 0, 4], fov: 50 }}
-            className="w-full h-full touch-none"
+            className="size-full touch-none"
           >
             <color attach="background" args={["#FAFAFA"]} />
             <ambientLight intensity={0.5} />
@@ -440,8 +439,8 @@ const LoginView: React.FC<LoginViewProps> = ({
               </div>
             )}
             {errorText && (
-              <div className="bg-warning-verba p-4 rounded w-full h-full overflow-auto">
-                <p className="flex w-full h-full whitespace-pre-wrap">
+              <div className="bg-warning-verba p-4 rounded size-full overflow-auto">
+                <p className="flex size-full whitespace-pre-wrap">
                   {errorText}
                 </p>
               </div>

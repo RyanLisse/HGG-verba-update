@@ -1,7 +1,6 @@
-import os
-import json
-from typing import List
 import io
+import json
+import os
 
 import aiohttp
 from wasabi import msg
@@ -62,7 +61,7 @@ class OpenAIEmbedder(Embedding):
                 values=[],
             )
 
-    async def vectorize(self, config: dict, content: List[str]) -> List[List[float]]:
+    async def vectorize(self, config: dict, content: list[str]) -> list[list[float]]:
         """Vectorize the input content using OpenAI's API."""
         model = config.get("Model", {"value": "text-embedding-ada-002"}).value
         key_name = (
@@ -115,14 +114,14 @@ class OpenAIEmbedder(Embedding):
             except aiohttp.ClientError as e:
                 if isinstance(e, aiohttp.ClientResponseError) and e.status == 429:
                     raise Exception("Rate limit exceeded. Waiting before retrying...")
-                raise Exception(f"API request failed: {str(e)}")
+                raise Exception(f"API request failed: {e!s}")
 
             except Exception as e:
-                msg.fail(f"Unexpected error: {type(e).__name__} - {str(e)}")
+                msg.fail(f"Unexpected error: {type(e).__name__} - {e!s}")
                 raise
 
     @staticmethod
-    def get_models(token: str, url: str) -> List[str]:
+    def get_models(token: str, url: str) -> list[str]:
         """Fetch available embedding models from OpenAI API."""
         try:
             if token is None:
@@ -145,7 +144,7 @@ class OpenAIEmbedder(Embedding):
                 ]
             return fetch_models
         except Exception as e:
-            msg.info(f"Failed to fetch OpenAI embedding models: {str(e)}")
+            msg.info(f"Failed to fetch OpenAI embedding models: {e!s}")
             return [
                 "text-embedding-ada-002",
                 "text-embedding-3-small",

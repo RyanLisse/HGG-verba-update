@@ -1,14 +1,12 @@
 import contextlib
 
 with contextlib.suppress(Exception):
-    from langchain_text_splitters import MarkdownHeaderTextSplitter
     from langchain_core.documents import Document as LangChainDocument
+    from langchain_text_splitters import MarkdownHeaderTextSplitter
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
-from goldenverba.components.interfaces import Embedding
-
+from goldenverba.components.interfaces import Chunker, Embedding
 
 HEADERS_TO_SPLIT_ON = [
     ("#", "Header 1"),

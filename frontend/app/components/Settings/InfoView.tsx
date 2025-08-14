@@ -92,7 +92,7 @@ const InfoView: React.FC<InfoViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full h-full p-4">
+    <div className="flex flex-col size-full p-4">
       <div className="flex justify-between items-center mb-4">
         <p className="text-2xl font-bold">Admin Panel</p>
         <VerbaButton

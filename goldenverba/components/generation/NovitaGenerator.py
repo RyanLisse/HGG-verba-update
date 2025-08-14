@@ -1,8 +1,8 @@
-import os
-from dotenv import load_dotenv
 import json
+
 import aiohttp
 import requests
+from dotenv import load_dotenv
 
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
@@ -131,9 +131,8 @@ def get_models():
         models = [model.get("id") for model in response.json().get("data")]
         if len(models) > 0:
             return models
-        else:
-            # msg.info("No Novita AI Model detected")
-            return ["No Novita AI Model detected"]
-    except Exception as e:
+        # msg.info("No Novita AI Model detected")
+        return ["No Novita AI Model detected"]
+    except Exception:
         # msg.fail(f"Couldn't connect to Novita AI: {e}")
-        return [f"Couldn't connect to Novita AI"]
+        return ["Couldn't connect to Novita AI"]

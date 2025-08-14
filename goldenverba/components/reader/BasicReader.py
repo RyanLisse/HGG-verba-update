@@ -1,7 +1,7 @@
 import base64
-import json
-import io
 import csv
+import io
+import json
 
 from wasabi import msg
 
@@ -126,14 +126,14 @@ class BasicReader(Reader):
             else:
                 try:
                     file_content = await self.load_text_file(decoded_bytes)
-                except Exception as e:
+                except Exception:
                     raise ValueError(
                         f"Unsupported file extension: {fileConfig.extension}"
                     )
 
             return [create_document(file_content, fileConfig)]
         except Exception as e:
-            msg.fail(f"Failed to load {fileConfig.filename}: {str(e)}")
+            msg.fail(f"Failed to load {fileConfig.filename}: {e!s}")
             raise
 
     async def load_text_file(self, decoded_bytes: bytes) -> str:
@@ -157,7 +157,7 @@ class BasicReader(Reader):
                 else [create_document(json.dumps(json_obj, indent=2), fileConfig)]
             )
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {fileConfig.filename}: {str(e)}")
+            raise ValueError(f"Invalid JSON in {fileConfig.filename}: {e!s}")
 
     async def load_pdf_file(self, decoded_bytes: bytes) -> str:
         """Load and extract text from a PDF file."""
@@ -205,7 +205,7 @@ class BasicReader(Reader):
             for i, row in enumerate(rows[1:], 1):
                 if len(row) == len(headers):
                     row_data = []
-                    for header, value in zip(headers, row):
+                    for header, value in zip(headers, row, strict=False):
                         row_data.append(f"{header}: {value}")
                     result.append(f"Row {i}: {' | '.join(row_data)}")
                 else:
@@ -215,7 +215,7 @@ class BasicReader(Reader):
             return "\n".join(result)
 
         except Exception as e:
-            raise ValueError(f"Error reading CSV file: {str(e)}")
+            raise ValueError(f"Error reading CSV file: {e!s}")
 
     async def load_excel_file(self, decoded_bytes: bytes, extension: str) -> str:
         """Load and convert Excel file to readable text format."""
@@ -246,7 +246,7 @@ class BasicReader(Reader):
                         except Exception:
                             raise ImportError(
                                 f"Cannot read .xls file. Please install 'xlrd' for .xls support: pip install xlrd. "
-                                f"Original error: {str(e)}"
+                                f"Original error: {e!s}"
                             )
 
                 result = []
@@ -267,7 +267,7 @@ class BasicReader(Reader):
 
                     for idx, (_, row) in enumerate(df.iterrows()):
                         row_data = []
-                        for header, value in zip(headers, row):
+                        for header, value in zip(headers, row, strict=False):
                             # Handle NaN values
                             display_value = str(value) if pd.notna(value) else ""
                             row_data.append(f"{header}: {display_value}")
@@ -276,50 +276,49 @@ class BasicReader(Reader):
 
                 return "\n".join(result)
 
-            else:
-                # Fallback to openpyxl for basic reading
-                if extension != "xlsx":
-                    raise ImportError(
-                        "openpyxl only supports .xlsx files. Please install pandas for .xls support."
-                    )
+            # Fallback to openpyxl for basic reading
+            if extension != "xlsx":
+                raise ImportError(
+                    "openpyxl only supports .xlsx files. Please install pandas for .xls support."
+                )
 
-                from openpyxl import load_workbook
+            from openpyxl import load_workbook
 
-                workbook = load_workbook(excel_bytes, data_only=True)
+            workbook = load_workbook(excel_bytes, data_only=True)
 
-                result = []
+            result = []
 
-                for sheet_name in workbook.sheetnames:
-                    sheet = workbook[sheet_name]
-                    result.append(f"\nSheet: {sheet_name}")
-                    result.append(" \n\n")
+            for sheet_name in workbook.sheetnames:
+                sheet = workbook[sheet_name]
+                result.append(f"\nSheet: {sheet_name}")
+                result.append(" \n\n")
 
-                    rows_data = []
-                    for row in sheet.iter_rows(values_only=True):
-                        if any(cell is not None for cell in row):  # Skip empty rows
-                            rows_data.append(
-                                [str(cell) if cell is not None else "" for cell in row]
-                            )
+                rows_data = []
+                for row in sheet.iter_rows(values_only=True):
+                    if any(cell is not None for cell in row):  # Skip empty rows
+                        rows_data.append(
+                            [str(cell) if cell is not None else "" for cell in row]
+                        )
 
-                    if not rows_data:
-                        result.append("(Empty sheet)")
-                        continue
+                if not rows_data:
+                    result.append("(Empty sheet)")
+                    continue
 
-                    # Add headers and data
-                    headers = rows_data[0] if rows_data else []
-                    result.append("Headers: " + " | ".join(headers))
-                    result.append(" \n\n")
+                # Add headers and data
+                headers = rows_data[0] if rows_data else []
+                result.append("Headers: " + " | ".join(headers))
+                result.append(" \n\n")
 
-                    for i, row in enumerate(rows_data[1:], 1):
-                        if len(row) == len(headers):
-                            row_data = [f"{h}: {v}" for h, v in zip(headers, row)]
-                            result.append(f"Row {i}: {' | '.join(row_data)}")
-                            result.append(" \n\n")
-                        else:
-                            result.append(f"Row {i}: {' | '.join(row)}")
-                            result.append(" \n\n")
+                for i, row in enumerate(rows_data[1:], 1):
+                    if len(row) == len(headers):
+                        row_data = [f"{h}: {v}" for h, v in zip(headers, row, strict=False)]
+                        result.append(f"Row {i}: {' | '.join(row_data)}")
+                        result.append(" \n\n")
+                    else:
+                        result.append(f"Row {i}: {' | '.join(row)}")
+                        result.append(" \n\n")
 
-                return "\n".join(result)
+            return "\n".join(result)
 
         except Exception as e:
-            raise ValueError(f"Error reading Excel file: {str(e)}")
+            raise ValueError(f"Error reading Excel file: {e!s}")

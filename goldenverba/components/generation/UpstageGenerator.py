@@ -1,10 +1,8 @@
-import os
-from dotenv import load_dotenv
-from goldenverba.components.interfaces import Generator
-from goldenverba.components.types import InputConfig
-from goldenverba.components.util import get_environment, get_token
-import httpx
 import json
+import os
+
+import httpx
+from dotenv import load_dotenv
 
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
@@ -74,7 +72,7 @@ class UpstageGenerator(Generator):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
-        
+
         data = {
             "messages": messages,
             "model": model,

@@ -1,5 +1,7 @@
-import numpy as np
 import os
+
+import numpy as np
+
 
 # Step 1: Standardize the data
 def standardize_data(X):

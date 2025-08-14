@@ -4,10 +4,9 @@ with contextlib.suppress(Exception):
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
 from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
 from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
 
 
 class RecursiveChunker(Chunker):

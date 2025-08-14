@@ -5,13 +5,12 @@ from wasabi import msg
 with contextlib.suppress(Exception):
     from sklearn.metrics.pairwise import cosine_similarity
 
-from goldenverba.components.chunk import Chunk
-from goldenverba.components.interfaces import Chunker
-from goldenverba.components.document import Document
-from goldenverba.components.types import InputConfig
-from goldenverba.components.interfaces import Embedding
-
 import numpy as np
+
+from goldenverba.components.chunk import Chunk
+from goldenverba.components.document import Document
+from goldenverba.components.interfaces import Chunker, Embedding
+from goldenverba.components.types import InputConfig
 
 
 class SemanticChunker(Chunker):
@@ -48,7 +47,7 @@ class SemanticChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-        
+
 
         breakpoint_percentile_threshold = int(
             config["Breakpoint Percentile Threshold"].value
@@ -111,7 +110,7 @@ class SemanticChunker(Chunker):
                 if (
                     i < len(distances) and distances[i] > breakpoint_distance_threshold
                 ) or sentence_count >= max_sentences:
-                    
+
                     chunk_text = " ".join(current_chunk)
                     chunks.append(chunk_text)
 

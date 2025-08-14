@@ -1,21 +1,28 @@
-export async function getGitHubStars(): Promise<any> {
+interface GitHubRepoResponse {
+  stargazers_count: number;
+  [key: string]: unknown;
+}
+
+export async function getGitHubStars(): Promise<number> {
   try {
-    const response: any = await fetch(
+    const response = await fetch(
       "https://api.github.com/repos/weaviate/verba",
       {
         method: "GET",
-      }
+      },
     );
 
-    const data: any = await response.json();
-
-    if (data) {
-      return data.stargazers_count;
-    } else {
+    if (!response.ok) {
+      console.error("GitHub API request failed:", response.status);
       return 0;
     }
+
+    const data: GitHubRepoResponse =
+      (await response.json()) as GitHubRepoResponse;
+
+    return data.stargazers_count || 0;
   } catch (error) {
-    console.error("Failed to perform search:", error);
+    console.error("Failed to fetch GitHub stars:", error);
     return 0;
   }
 }

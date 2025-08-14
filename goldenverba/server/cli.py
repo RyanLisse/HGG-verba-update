@@ -1,6 +1,7 @@
+import os
+
 import click
 import uvicorn
-import os
 from dotenv import load_dotenv
 
 from goldenverba import verba_manager
@@ -12,7 +13,6 @@ load_dotenv()
 @click.group()
 def cli():
     """Main command group for verba."""
-    pass
 
 
 @cli.command()
@@ -90,13 +90,12 @@ def reset(url, api_key, deployment, full_reset):
                 )
             else:
                 raise ValueError("Invalid deployment")
+        elif deployment == "" or deployment == "Local":
+            client = await manager.connect(
+                Credentials(deployment="Local", url="", key="")
+            )
         else:
-            if deployment == "" or deployment == "Local":
-                client = await manager.connect(
-                    Credentials(deployment="Local", url="", key="")
-                )
-            else:
-                raise ValueError("Invalid deployment")
+            raise ValueError("Invalid deployment")
 
         if not full_reset:
             await manager.reset_rag_config(client)

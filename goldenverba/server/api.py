@@ -1,42 +1,39 @@
-from fastapi import FastAPI, WebSocket, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from contextlib import asynccontextmanager
-from fastapi.staticfiles import StaticFiles
 import asyncio
-
-from goldenverba.server.helpers import LoggerManager, BatchManager
-from weaviate.client import WeaviateAsyncClient
-
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
+from fastapi import FastAPI, Request, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 from wasabi import msg  # type: ignore[import]
+from weaviate.client import WeaviateAsyncClient
 
 from goldenverba import verba_manager
-
+from goldenverba.server.helpers import BatchManager, LoggerManager
 from goldenverba.server.types import (
-    ResetPayload,
-    QueryPayload,
-    GeneratePayload,
-    Credentials,
-    GetDocumentPayload,
+    ChunksPayload,
     ConnectPayload,
+    Credentials,
+    DataBatchPayload,
     DatacountPayload,
-    GetSuggestionsPayload,
-    GetAllSuggestionsPayload,
     DeleteSuggestionPayload,
+    GeneratePayload,
+    GetAllSuggestionsPayload,
+    GetChunkPayload,
     GetContentPayload,
-    SetThemeConfigPayload,
-    SetUserConfigPayload,
+    GetDocumentPayload,
+    GetSuggestionsPayload,
+    GetVectorPayload,
+    QueryPayload,
+    ResetPayload,
     SearchQueryPayload,
     SetRAGConfigPayload,
-    GetChunkPayload,
-    GetVectorPayload,
-    DataBatchPayload,
-    ChunksPayload,
+    SetThemeConfigPayload,
+    SetUserConfigPayload,
 )
 
 load_dotenv()
@@ -92,26 +89,25 @@ async def check_same_origin(request: Request, call_next):
         and request.base_url.hostname == "localhost"
     ):
         return await call_next(request)
-    else:
-        # Only apply restrictions to /api/ routes (except /api/health)
-        if request.url.path.startswith("/api/"):
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "error": "Not allowed",
-                    "details": {
-                        "request_origin": origin,
-                        "expected_origin": str(request.base_url),
-                        "request_method": request.method,
-                        "request_url": str(request.url),
-                        "request_headers": dict(request.headers),
-                        "expected_header": "Origin header matching the server's base URL or localhost",
-                    },
+    # Only apply restrictions to /api/ routes (except /api/health)
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "Not allowed",
+                "details": {
+                    "request_origin": origin,
+                    "expected_origin": str(request.base_url),
+                    "request_method": request.method,
+                    "request_url": str(request.url),
+                    "request_headers": dict(request.headers),
+                    "expected_header": "Origin header matching the server's base URL or localhost",
                 },
-            )
+            },
+        )
 
-        # Allow non-API routes to pass through
-        return await call_next(request)
+    # Allow non-API routes to pass through
+    return await call_next(request)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -179,17 +175,16 @@ async def connect_to_verba(payload: ConnectPayload):
                     "themes": themes,
                 },
             )
-        else:
-            raise TypeError(
-                "Couldn't connect to Weaviate, client is not an AsyncClient object"
-            )
+        raise TypeError(
+            "Couldn't connect to Weaviate, client is not an AsyncClient object"
+        )
     except Exception as e:
-        msg.fail(f"Failed to connect to Weaviate {str(e)}")
+        msg.fail(f"Failed to connect to Weaviate {e!s}")
         return JSONResponse(
             status_code=400,
             content={
                 "connected": False,
-                "error": f"Failed to connect to Weaviate {str(e)}",
+                "error": f"Failed to connect to Weaviate {e!s}",
                 "rag_config": {},
                 "theme": {},
                 "themes": {},
@@ -228,7 +223,7 @@ async def websocket_generate_stream(websocket: WebSocket):
             break  # Break out of the loop when the client disconnects
 
         except Exception as e:
-            msg.fail(f"WebSocket Error: {str(e)}")
+            msg.fail(f"WebSocket Error: {e!s}")
             await websocket.send_json(
                 {"message": e, "finish_reason": "stop", "full_text": str(e)}
             )
@@ -260,7 +255,7 @@ async def websocket_import_files(websocket: WebSocket):
             msg.warn("Import WebSocket connection closed by client.")
             break
         except Exception as e:
-            msg.fail(f"Import WebSocket Error: {str(e)}")
+            msg.fail(f"Import WebSocket Error: {e!s}")
             break
 
 
@@ -278,12 +273,12 @@ async def retrieve_rag_config(payload: Credentials):
         )
 
     except Exception as e:
-        msg.warn(f"Could not retrieve configuration: {str(e)}")
+        msg.warn(f"Could not retrieve configuration: {e!s}")
         return JSONResponse(
             status_code=500,
             content={
                 "rag_config": {},
-                "error": f"Could not retrieve rag configuration: {str(e)}",
+                "error": f"Could not retrieve rag configuration: {e!s}",
             },
         )
 
@@ -307,11 +302,11 @@ async def update_rag_config(payload: SetRAGConfigPayload):
             }
         )
     except Exception as e:
-        msg.warn(f"Failed to set new RAG Config {str(e)}")
+        msg.warn(f"Failed to set new RAG Config {e!s}")
         return JSONResponse(
             content={
                 "status": 400,
-                "status_msg": f"Failed to set new RAG Config {str(e)}",
+                "status_msg": f"Failed to set new RAG Config {e!s}",
             }
         )
 
@@ -326,12 +321,12 @@ async def retrieve_user_config(payload: Credentials):
         )
 
     except Exception as e:
-        msg.warn(f"Could not retrieve user configuration: {str(e)}")
+        msg.warn(f"Could not retrieve user configuration: {e!s}")
         return JSONResponse(
             status_code=500,
             content={
                 "user_config": {},
-                "error": f"Could not retrieve rag configuration: {str(e)}",
+                "error": f"Could not retrieve rag configuration: {e!s}",
             },
         )
 
@@ -356,11 +351,11 @@ async def update_user_config(payload: SetUserConfigPayload):
             }
         )
     except Exception as e:
-        msg.warn(f"Failed to set new RAG Config {str(e)}")
+        msg.warn(f"Failed to set new RAG Config {e!s}")
         return JSONResponse(
             content={
                 "status": 400,
-                "status_msg": f"Failed to set new RAG Config {str(e)}",
+                "status_msg": f"Failed to set new RAG Config {e!s}",
             }
         )
 
@@ -376,13 +371,13 @@ async def retrieve_theme_config(payload: Credentials):
         )
 
     except Exception as e:
-        msg.warn(f"Could not retrieve configuration: {str(e)}")
+        msg.warn(f"Could not retrieve configuration: {e!s}")
         return JSONResponse(
             status_code=500,
             content={
                 "theme": None,
                 "themes": None,
-                "error": f"Could not retrieve theme configuration: {str(e)}",
+                "error": f"Could not retrieve theme configuration: {e!s}",
             },
         )
 
@@ -408,11 +403,11 @@ async def update_theme_config(payload: SetThemeConfigPayload):
             }
         )
     except Exception as e:
-        msg.warn(f"Failed to set new RAG Config {str(e)}")
+        msg.warn(f"Failed to set new RAG Config {e!s}")
         return JSONResponse(
             content={
                 "status": 400,
-                "status_msg": f"Failed to set new RAG Config {str(e)}",
+                "status_msg": f"Failed to set new RAG Config {e!s}",
             }
         )
 
@@ -435,9 +430,9 @@ async def query(payload: QueryPayload):
             content={"error": "", "documents": documents, "context": context}
         )
     except Exception as e:
-        msg.warn(f"Query failed: {str(e)}")
+        msg.warn(f"Query failed: {e!s}")
         return JSONResponse(
-            content={"error": f"Query failed: {str(e)}", "documents": [], "context": ""}
+            content={"error": f"Query failed: {e!s}", "documents": [], "context": ""}
         )
 
 
@@ -471,16 +466,15 @@ async def get_document(payload: GetDocumentPayload):
                     "document": document,
                 }
             )
-        else:
-            msg.warn(f"Could't retrieve document")
-            return JSONResponse(
-                content={
-                    "error": "Couldn't retrieve requested document",
-                    "document": None,
-                }
-            )
+        msg.warn("Could't retrieve document")
+        return JSONResponse(
+            content={
+                "error": "Couldn't retrieve requested document",
+                "document": None,
+            }
+        )
     except Exception as e:
-        msg.fail(f"Document retrieval failed: {str(e)}")
+        msg.fail(f"Document retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "error": str(e),
@@ -503,7 +497,7 @@ async def get_document_count(payload: DatacountPayload):
             }
         )
     except Exception as e:
-        msg.fail(f"Document Count retrieval failed: {str(e)}")
+        msg.fail(f"Document Count retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "datacount": 0,
@@ -522,7 +516,7 @@ async def get_labels(payload: Credentials):
             }
         )
     except Exception as e:
-        msg.fail(f"Document Labels retrieval failed: {str(e)}")
+        msg.fail(f"Document Labels retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "labels": [],
@@ -543,7 +537,7 @@ async def get_content(payload: GetContentPayload):
             content={"error": "", "content": content, "maxPage": maxPage}
         )
     except Exception as e:
-        msg.fail(f"Document retrieval failed: {str(e)}")
+        msg.fail(f"Document retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "error": str(e),
@@ -567,7 +561,7 @@ async def get_vectors(payload: GetVectorPayload):
             }
         )
     except Exception as e:
-        msg.fail(f"Vector retrieval failed: {str(e)}")
+        msg.fail(f"Vector retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "error": str(e),
@@ -591,7 +585,7 @@ async def get_chunks(payload: ChunksPayload):
             }
         )
     except Exception as e:
-        msg.fail(f"Chunk retrieval failed: {str(e)}")
+        msg.fail(f"Chunk retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "error": str(e),
@@ -615,7 +609,7 @@ async def get_chunk(payload: GetChunkPayload):
             }
         )
     except Exception as e:
-        msg.fail(f"Chunk retrieval failed: {str(e)}")
+        msg.fail(f"Chunk retrieval failed: {e!s}")
         return JSONResponse(
             content={
                 "error": str(e),
@@ -649,12 +643,12 @@ async def get_all_documents(payload: SearchQueryPayload):
             }
         )
     except Exception as e:
-        msg.fail(f"Retrieving all documents failed: {str(e)}")
+        msg.fail(f"Retrieving all documents failed: {e!s}")
         return JSONResponse(
             content={
                 "documents": [],
                 "label": [],
-                "error": f"All Document retrieval failed: {str(e)}",
+                "error": f"All Document retrieval failed: {e!s}",
                 "totalDocuments": 0,
             }
         )
@@ -674,7 +668,7 @@ async def delete_document(payload: GetDocumentPayload):
         return JSONResponse(status_code=200, content={})
 
     except Exception as e:
-        msg.fail(f"Deleting Document with ID {payload.uuid} failed: {str(e)}")
+        msg.fail(f"Deleting Document with ID {payload.uuid} failed: {e!s}")
         return JSONResponse(status_code=400, content={})
 
 
@@ -702,7 +696,7 @@ async def reset_verba(payload: ResetPayload):
         return JSONResponse(status_code=200, content={})
 
     except Exception as e:
-        msg.warn(f"Failed to reset Verba {str(e)}")
+        msg.warn(f"Failed to reset Verba {e!s}")
         return JSONResponse(status_code=500, content={})
 
 
@@ -724,7 +718,7 @@ async def get_meta(payload: Credentials):
     except Exception as e:
         return JSONResponse(
             content={
-                "error": f"Couldn't retrieve metadata {str(e)}",
+                "error": f"Couldn't retrieve metadata {e!s}",
                 "node_payload": {},
                 "collection_payload": {},
             }

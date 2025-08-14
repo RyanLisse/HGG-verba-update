@@ -1,13 +1,10 @@
 import os
 
-from goldenverba.components.document import Document
-from goldenverba.server.types import FileConfig
-from goldenverba.components.types import InputConfig
-
 from dotenv import load_dotenv
 
-from wasabi import msg
-from weaviate import Client
+from goldenverba.components.document import Document
+from goldenverba.components.types import InputConfig
+from goldenverba.server.types import FileConfig
 
 load_dotenv()
 

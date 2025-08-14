@@ -13,6 +13,14 @@ import {
   oneLight,
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
+interface CodeProps {
+  node?: unknown;
+  inline?: boolean;
+  className?: string;
+  children: React.ReactNode;
+  [key: string]: unknown;
+}
+
 import VerbaButton from "../Navigation/VerbaButton";
 import { Actions, Action } from "@/components/ai-elements/actions";
 import { logFeedback } from "@/app/lib/langsmith";
@@ -60,14 +68,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             <ReactMarkdown
               className="prose md:prose-sm lg:prose-base p-3 prose-pre:bg-bg-alt-verba"
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ node, inline, className, children, ...props }: CodeProps) {
                   const match = /language-(\w+)/.exec(className || "");
                   return !inline && match ? (
                     <SyntaxHighlighter
                       style={
                         selectedTheme.theme === "dark"
-                          ? (oneDark as any)
-                          : (oneLight as any)
+                          ? oneDark
+                          : oneLight
                       }
                       language={match[1]}
                       PreTag="div"

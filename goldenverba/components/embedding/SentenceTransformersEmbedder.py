@@ -3,7 +3,7 @@ from goldenverba.components.types import InputConfig
 
 try:
     from sentence_transformers import SentenceTransformer
-except Exception as e:
+except Exception:
     pass
 
 
@@ -40,4 +40,4 @@ class SentenceTransformersEmbedder(Embedding):
             embeddings = model.encode(content).tolist()
             return embeddings
         except Exception as e:
-            raise Exception(f"Failed to vectorize chunks: {str(e)}")
+            raise Exception(f"Failed to vectorize chunks: {e!s}")

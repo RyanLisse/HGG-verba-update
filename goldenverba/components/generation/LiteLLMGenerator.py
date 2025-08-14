@@ -1,12 +1,13 @@
+import json
 import os
+
+import httpx
 from dotenv import load_dotenv
+from wasabi import msg
+
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment, get_token
-from typing import List
-import httpx
-import json
-from wasabi import msg
 
 load_dotenv()
 
@@ -104,7 +105,7 @@ class LiteLLMGenerator(Generator):
                         elif "finish_reason" in choice:
                             yield {"message": "", "finish_reason": choice["finish_reason"]}
             except Exception as e:
-                msg.fail(f"LiteLLM stream error: {str(e)}")
+                msg.fail(f"LiteLLM stream error: {e!s}")
                 yield {"message": str(e), "finish_reason": "stop"}
 
     def prepare_messages(
@@ -123,7 +124,7 @@ class LiteLLMGenerator(Generator):
         )
         return messages
 
-    def get_models(self, token: str, url: str) -> List[str]:
+    def get_models(self, token: str, url: str) -> list[str]:
         # Try to fetch from /models; otherwise return an empty list to enable free text
         try:
             if not token or not url:

@@ -1,77 +1,74 @@
-from wasabi import msg
-
-import weaviate
-from weaviate.client import WeaviateAsyncClient
-from weaviate.auth import AuthApiKey
-from weaviate.classes.query import Filter, Sort, MetadataQuery
-from weaviate.collections.classes.data import DataObject
-from weaviate.classes.aggregate import GroupByAggregate
-from weaviate.classes.init import AdditionalConfig, Timeout
-
-import os
 import asyncio
 import json
+import os
 import re
 from datetime import datetime
 
+import weaviate
 from sklearn.decomposition import PCA
+from wasabi import msg
+from weaviate.auth import AuthApiKey
+from weaviate.classes.aggregate import GroupByAggregate
+from weaviate.classes.init import AdditionalConfig, Timeout
+from weaviate.classes.query import Filter, MetadataQuery, Sort
+from weaviate.client import WeaviateAsyncClient
+from weaviate.collections.classes.data import DataObject
 
+from goldenverba.components.chunking.CodeChunker import CodeChunker
+from goldenverba.components.chunking.HTMLChunker import HTMLChunker
+from goldenverba.components.chunking.JSONChunker import JSONChunker
+from goldenverba.components.chunking.MarkdownChunker import MarkdownChunker
+from goldenverba.components.chunking.RecursiveChunker import RecursiveChunker
+from goldenverba.components.chunking.SemanticChunker import SemanticChunker
+from goldenverba.components.chunking.SentenceChunker import SentenceChunker
 
+# Import Chunkers
+from goldenverba.components.chunking.TokenChunker import TokenChunker
 from goldenverba.components.document import Document
+from goldenverba.components.embedding.CohereEmbedder import CohereEmbedder
+from goldenverba.components.embedding.OllamaEmbedder import OllamaEmbedder
+
+# Import Embedders
+from goldenverba.components.embedding.OpenAIEmbedder import OpenAIEmbedder
+from goldenverba.components.embedding.SentenceTransformersEmbedder import (
+    SentenceTransformersEmbedder,
+)
+from goldenverba.components.embedding.UpstageEmbedder import UpstageEmbedder
+from goldenverba.components.embedding.VoyageAIEmbedder import VoyageAIEmbedder
+from goldenverba.components.embedding.WeaviateEmbedder import WeaviateEmbedder
+from goldenverba.components.generation.AnthrophicGenerator import AnthropicGenerator
+
+# Import Generators
+from goldenverba.components.generation.CohereGenerator import CohereGenerator
+from goldenverba.components.generation.GroqGenerator import GroqGenerator
+from goldenverba.components.generation.LiteLLMGenerator import LiteLLMGenerator
+from goldenverba.components.generation.NovitaGenerator import NovitaGenerator
+from goldenverba.components.generation.OllamaGenerator import OllamaGenerator
+from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
+from goldenverba.components.generation.UpstageGenerator import UpstageGenerator
 from goldenverba.components.interfaces import (
-    Reader,
     Chunker,
     Embedding,
-    Retriever,
     Generator,
+    Reader,
+    Retriever,
 )
-from goldenverba.server.helpers import LoggerManager
-from goldenverba.server.types import FileConfig, FileStatus
+from goldenverba.components.reader.AssemblyAIAPI import AssemblyAIReader
 
 # Import Readers
 from goldenverba.components.reader.BasicReader import BasicReader
-from goldenverba.components.reader.GitReader import GitReader
-from goldenverba.components.reader.UnstructuredAPI import UnstructuredReader
-from goldenverba.components.reader.AssemblyAIAPI import AssemblyAIReader
-from goldenverba.components.reader.HTMLReader import HTMLReader
 from goldenverba.components.reader.FirecrawlReader import FirecrawlReader
+from goldenverba.components.reader.GitReader import GitReader
+from goldenverba.components.reader.HTMLReader import HTMLReader
+from goldenverba.components.reader.UnstructuredAPI import UnstructuredReader
 from goldenverba.components.reader.UpstageDocumentParse import (
     UpstageDocumentParseReader,
 )
 
-# Import Chunkers
-from goldenverba.components.chunking.TokenChunker import TokenChunker
-from goldenverba.components.chunking.SentenceChunker import SentenceChunker
-from goldenverba.components.chunking.RecursiveChunker import RecursiveChunker
-from goldenverba.components.chunking.HTMLChunker import HTMLChunker
-from goldenverba.components.chunking.MarkdownChunker import MarkdownChunker
-from goldenverba.components.chunking.CodeChunker import CodeChunker
-from goldenverba.components.chunking.JSONChunker import JSONChunker
-from goldenverba.components.chunking.SemanticChunker import SemanticChunker
-
-# Import Embedders
-from goldenverba.components.embedding.OpenAIEmbedder import OpenAIEmbedder
-from goldenverba.components.embedding.CohereEmbedder import CohereEmbedder
-from goldenverba.components.embedding.OllamaEmbedder import OllamaEmbedder
-from goldenverba.components.embedding.UpstageEmbedder import UpstageEmbedder
-from goldenverba.components.embedding.WeaviateEmbedder import WeaviateEmbedder
-from goldenverba.components.embedding.VoyageAIEmbedder import VoyageAIEmbedder
-from goldenverba.components.embedding.SentenceTransformersEmbedder import (
-    SentenceTransformersEmbedder,
-)
-
 # Import Retrievers
 from goldenverba.components.retriever.WindowRetriever import WindowRetriever
-
-# Import Generators
-from goldenverba.components.generation.CohereGenerator import CohereGenerator
-from goldenverba.components.generation.AnthrophicGenerator import AnthropicGenerator
-from goldenverba.components.generation.OllamaGenerator import OllamaGenerator
-from goldenverba.components.generation.OpenAIGenerator import OpenAIGenerator
-from goldenverba.components.generation.LiteLLMGenerator import LiteLLMGenerator
-from goldenverba.components.generation.GroqGenerator import GroqGenerator
-from goldenverba.components.generation.NovitaGenerator import NovitaGenerator
-from goldenverba.components.generation.UpstageGenerator import UpstageGenerator
+from goldenverba.server.helpers import LoggerManager
+from goldenverba.server.types import FileConfig, FileStatus
 
 try:
     import tiktoken
@@ -180,11 +177,10 @@ class WeaviateManager:
                     timeout=Timeout(init=60, query=300, insert=300)
                 ),
             )
-        else:
-            raise Exception("No URL or API Key provided")
+        raise Exception("No URL or API Key provided")
 
     async def connect_to_docker(self, w_url):
-        msg.info(f"Connecting to Weaviate Docker")
+        msg.info("Connecting to Weaviate Docker")
         return weaviate.use_async_with_local(
             host=w_url,
             additional_config=AdditionalConfig(
@@ -194,7 +190,7 @@ class WeaviateManager:
 
     async def connect_to_custom(self, host, w_key, port):
         # Extract the port from the host
-        msg.info(f"Connecting to Weaviate Custom")
+        msg.info("Connecting to Weaviate Custom")
 
         if host is None or host == "":
             raise Exception("No Host URL provided")
@@ -208,19 +204,18 @@ class WeaviateManager:
                     timeout=Timeout(init=60, query=300, insert=300)
                 ),
             )
-        else:
-            return weaviate.use_async_with_local(
-                host=host,
-                port=int(port),
-                skip_init_checks=True,
-                auth_credentials=AuthApiKey(w_key),
-                additional_config=AdditionalConfig(
-                    timeout=Timeout(init=60, query=300, insert=300)
-                ),
-            )
+        return weaviate.use_async_with_local(
+            host=host,
+            port=int(port),
+            skip_init_checks=True,
+            auth_credentials=AuthApiKey(w_key),
+            additional_config=AdditionalConfig(
+                timeout=Timeout(init=60, query=300, insert=300)
+            ),
+        )
 
     async def connect_to_embedded(self):
-        msg.info(f"Connecting to Weaviate Embedded")
+        msg.info("Connecting to Weaviate Embedded")
         return weaviate.use_async_with_embedded(
             additional_config=AdditionalConfig(
                 timeout=Timeout(init=60, query=300, insert=300)
@@ -256,9 +251,9 @@ class WeaviateManager:
             return None
 
         except Exception as e:
-            msg.fail(f"Couldn't connect to Weaviate, check your URL/API KEY: {str(e)}")
+            msg.fail(f"Couldn't connect to Weaviate, check your URL/API KEY: {e!s}")
             raise Exception(
-                f"Couldn't connect to Weaviate, check your URL/API KEY: {str(e)}"
+                f"Couldn't connect to Weaviate, check your URL/API KEY: {e!s}"
             )
 
     async def disconnect(self, client: WeaviateAsyncClient):
@@ -266,7 +261,7 @@ class WeaviateManager:
             await client.close()
             return True
         except Exception as e:
-            msg.fail(f"Couldn't disconnect Weaviate: {str(e)}")
+            msg.fail(f"Couldn't disconnect Weaviate: {e!s}")
             return False
 
     ### Metadata
@@ -314,10 +309,8 @@ class WeaviateManager:
             returned_collection = await client.collections.create(name=collection_name)
             if returned_collection:
                 return True
-            else:
-                return False
-        else:
-            return True
+            return False
+        return True
 
     async def verify_embedding_collection(self, client: WeaviateAsyncClient, embedder):
         if embedder not in self.embedding_table:
@@ -325,8 +318,7 @@ class WeaviateManager:
                 r"[^a-zA-Z0-9]", "_", embedder
             )
             return await self.verify_collection(client, self.embedding_table[embedder])
-        else:
-            return True
+        return True
 
     async def verify_cache_collection(self, client: WeaviateAsyncClient, embedder):
         if embedder not in self.embedding_table:
@@ -334,8 +326,7 @@ class WeaviateManager:
                 r"[^a-zA-Z0-9]", "_", embedder
             )
             return await self.verify_collection(client, self.embedding_table[embedder])
-        else:
-            return True
+        return True
 
     async def verify_embedding_collections(
         self, client: WeaviateAsyncClient, environment_variables, libraries
@@ -370,8 +361,7 @@ class WeaviateManager:
             if await config_collection.data.exists(uuid):
                 config = await config_collection.query.fetch_object_by_id(uuid)
                 return json.loads(config.properties["config"])
-            else:
-                return None
+            return None
 
     async def set_config(self, client: WeaviateAsyncClient, uuid: str, config: dict):
         if await self.verify_collection(client, self.config_collection_name):
@@ -446,7 +436,7 @@ class WeaviateManager:
             except Exception as e:
                 if doc_uuid:
                     await self.delete_document(client, doc_uuid)
-                raise Exception(f"Chunk import failed with : {str(e)}")
+                raise Exception(f"Chunk import failed with : {e!s}")
 
     ### Document CRUD
 
@@ -457,12 +447,11 @@ class WeaviateManager:
 
             if aggregation.total_count == 0:
                 return None
-            else:
-                documents = await document_collection.query.fetch_objects(
-                    filters=Filter.by_property("title").equal(name)
-                )
-                if len(documents.objects) > 0:
-                    return documents.objects[0].uuid
+            documents = await document_collection.query.fetch_objects(
+                filters=Filter.by_property("title").equal(name)
+            )
+            if len(documents.objects) > 0:
+                return documents.objects[0].uuid
 
             return None
 
@@ -571,9 +560,8 @@ class WeaviateManager:
                     uuid, return_properties=properties
                 )
                 return response.properties
-            else:
-                msg.warn(f"Document not found ({uuid})")
-                return None
+            msg.warn(f"Document not found ({uuid})")
+            return None
 
     ### Labels
 
@@ -599,8 +587,7 @@ class WeaviateManager:
                 response = await embedder_collection.query.fetch_object_by_id(uuid)
                 response.properties["doc_uuid"] = str(response.properties["doc_uuid"])
                 return response.properties
-            else:
-                return None
+            return None
 
     async def get_chunks(
         self, client: WeaviateAsyncClient, uuid: str, page: int, pageSize: int
@@ -694,70 +681,68 @@ class WeaviateManager:
                 }
 
             # Generate PCA for all embeddings
-            else:
-                vector_map = {}
-                vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids = (
-                    [],
-                    [],
-                    [],
-                    [],
-                )
-                dimensions = 0
+            vector_map = {}
+            vector_list, vector_ids, vector_chunk_uuids, vector_chunk_ids = (
+                [],
+                [],
+                [],
+                [],
+            )
+            dimensions = 0
 
-                async for item in embedder_collection.iterator(include_vector=True):
-                    doc_uuid = item.properties["doc_uuid"]
-                    chunk_uuid = item.uuid
-                    if doc_uuid not in vector_map:
-                        _document = await self.get_document(client, doc_uuid)
-                        if _document:
-                            vector_map[doc_uuid] = {
-                                "name": _document["title"],
-                                "chunks": [],
-                            }
-                        else:
-                            continue
-                    vector_list.append(item.vector["default"])
-                    dimensions = len(item.vector["default"])
-                    vector_ids.append(doc_uuid)
-                    vector_chunk_uuids.append(chunk_uuid)
-                    vector_chunk_ids.append(item.properties["chunk_id"])
+            async for item in embedder_collection.iterator(include_vector=True):
+                doc_uuid = item.properties["doc_uuid"]
+                chunk_uuid = item.uuid
+                if doc_uuid not in vector_map:
+                    _document = await self.get_document(client, doc_uuid)
+                    if _document:
+                        vector_map[doc_uuid] = {
+                            "name": _document["title"],
+                            "chunks": [],
+                        }
+                    else:
+                        continue
+                vector_list.append(item.vector["default"])
+                dimensions = len(item.vector["default"])
+                vector_ids.append(doc_uuid)
+                vector_chunk_uuids.append(chunk_uuid)
+                vector_chunk_ids.append(item.properties["chunk_id"])
 
-                if len(vector_ids) > 3:
-                    pca = PCA(n_components=3)
-                    generated_pca_embeddings = pca.fit_transform(vector_list)
-                    pca_embeddings = [
-                        pca_.tolist() for pca_ in generated_pca_embeddings
-                    ]
+            if len(vector_ids) > 3:
+                pca = PCA(n_components=3)
+                generated_pca_embeddings = pca.fit_transform(vector_list)
+                pca_embeddings = [
+                    pca_.tolist() for pca_ in generated_pca_embeddings
+                ]
 
-                    for pca_embedding, _uuid, _chunk_uuid, _chunk_id in zip(
-                        pca_embeddings,
-                        vector_ids,
-                        vector_chunk_uuids,
-                        vector_chunk_ids,
-                    ):
-                        vector_map[_uuid]["chunks"].append(
-                            {
-                                "vector": {
-                                    "x": pca_embedding[0],
-                                    "y": pca_embedding[1],
-                                    "z": pca_embedding[2],
-                                },
-                                "uuid": str(_chunk_uuid),
-                                "chunk_id": _chunk_id,
-                            }
-                        )
+                for pca_embedding, _uuid, _chunk_uuid, _chunk_id in zip(
+                    pca_embeddings,
+                    vector_ids,
+                    vector_chunk_uuids,
+                    vector_chunk_ids, strict=False,
+                ):
+                    vector_map[_uuid]["chunks"].append(
+                        {
+                            "vector": {
+                                "x": pca_embedding[0],
+                                "y": pca_embedding[1],
+                                "z": pca_embedding[2],
+                            },
+                            "uuid": str(_chunk_uuid),
+                            "chunk_id": _chunk_id,
+                        }
+                    )
 
-                    return {
-                        "embedder": embedder,
-                        "dimensions": dimensions,
-                        "groups": list(vector_map.values()),
-                    }
-                else:
-                    return {
-                        "embedder": embedder,
-                        "dimensions": dimensions,
-                        "groups": [],
-                    }
+                return {
+                    "embedder": embedder,
+                    "dimensions": dimensions,
+                    "groups": list(vector_map.values()),
+                }
+            return {
+                "embedder": embedder,
+                "dimensions": dimensions,
+                "groups": [],
+            }
 
         return None
 
@@ -828,7 +813,7 @@ class WeaviateManager:
                 )
                 return weaviate_chunks.objects
             except Exception as e:
-                msg.fail(f"Failed to fetch chunks: {str(e)}")
+                msg.fail(f"Failed to fetch chunks: {e!s}")
                 raise e
 
     ### Suggestion Logic
@@ -934,7 +919,7 @@ class WeaviateManager:
                 )
                 return len(response.groups)
             except Exception as e:
-                msg.fail(f"Failed to retrieve data count: {str(e)}")
+                msg.fail(f"Failed to retrieve data count: {e!s}")
                 return 0
 
     async def get_chunk_count(
@@ -949,8 +934,7 @@ class WeaviateManager:
             )
             if response.groups:
                 return response.groups[0].total_count
-            else:
-                return 0
+            return 0
 
 
 class ReaderManager:
@@ -991,11 +975,10 @@ class ReaderManager:
                     fileConfig.fileID, FileStatus.CHUNKING, "", took=0
                 )
                 return documents
-            else:
-                raise Exception(f"{reader} Reader not found")
+            raise Exception(f"{reader} Reader not found")
 
         except Exception as e:
-            raise Exception(f"Reader {reader} failed with: {str(e)}")
+            raise Exception(f"Reader {reader} failed with: {e!s}")
 
 
 class ChunkerManager:
@@ -1052,8 +1035,7 @@ class ChunkerManager:
                     fileConfig.fileID, FileStatus.EMBEDDING, "", took=0
                 )
                 return chunked_documents
-            else:
-                raise Exception(f"{chunker} Chunker not found")
+            raise Exception(f"{chunker} Chunker not found")
         except Exception as e:
             raise e
 
@@ -1098,7 +1080,7 @@ class EmbeddingManager:
                         pca_embeddings = [embedding[0:3] for embedding in embeddings]
 
                     for vector, chunk, pca_ in zip(
-                        embeddings, document.chunks, pca_embeddings
+                        embeddings, document.chunks, pca_embeddings, strict=False
                     ):
                         chunk.vector = vector
                         chunk.pca = pca_
@@ -1113,15 +1095,14 @@ class EmbeddingManager:
                 await logger.send_report(
                     fileConfig.fileID,
                     FileStatus.EMBEDDING,
-                    f"Vectorized all chunks",
+                    "Vectorized all chunks",
                     took=elapsed_time,
                 )
                 await logger.send_report(
                     fileConfig.fileID, FileStatus.INGESTING, "", took=0
                 )
                 return documents
-            else:
-                raise Exception(f"{embedder} Embedder not found")
+            raise Exception(f"{embedder} Embedder not found")
         except Exception as e:
             raise e
 
@@ -1159,7 +1140,7 @@ class EmbeddingManager:
 
             return flattened_results
         except Exception as e:
-            raise Exception(f"Batch vectorization failed: {str(e)}")
+            raise Exception(f"Batch vectorization failed: {e!s}")
 
     async def vectorize_query(
         self, embedder: str, content: str, rag_config: dict
@@ -1169,8 +1150,7 @@ class EmbeddingManager:
                 config = rag_config["Embedder"].components[embedder].config
                 embeddings = await self.embedders[embedder].vectorize(config, [content])
                 return embeddings[0]
-            else:
-                raise Exception(f"{embedder} Embedder not found")
+            raise Exception(f"{embedder} Embedder not found")
         except Exception as e:
             raise e
 

@@ -1,12 +1,13 @@
 from fastapi import WebSocket
+from wasabi import msg
+
 from goldenverba.server.types import (
-    FileStatus,
-    StatusReport,
+    CreateNewDocument,
     DataBatchPayload,
     FileConfig,
-    CreateNewDocument,
+    FileStatus,
+    StatusReport,
 )
-from wasabi import msg
 
 
 class LoggerManager:
@@ -67,7 +68,7 @@ class BatchManager:
             return fileConfig
 
         except Exception as e:
-            msg.fail(f"Failed to add batch to BatchManager: {str(e)}")
+            msg.fail(f"Failed to add batch to BatchManager: {e!s}")
 
     def check_batch(self, fileID: str):
         if len(self.batches[fileID]["chunks"].keys()) == self.batches[fileID]["total"]:
@@ -75,5 +76,4 @@ class BatchManager:
             chunks = self.batches[fileID]["chunks"]
             data = "".join([chunks[chunk] for chunk in chunks])
             return FileConfig.model_validate_json(data)
-        else:
-            return None
+        return None

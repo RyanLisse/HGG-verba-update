@@ -1,6 +1,7 @@
+import asyncio
+
 from goldenverba.components.chunking.TokenChunker import TokenChunker
 from goldenverba.components.document import Document
-import asyncio
 
 
 async def run_token_chunker():

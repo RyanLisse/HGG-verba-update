@@ -1,6 +1,5 @@
 import os
-import requests
-from wasabi import msg
+
 import aiohttp
 
 from goldenverba.components.interfaces import Embedding
@@ -13,7 +12,7 @@ class WeaviateEmbedder(Embedding):
     def __init__(self):
         super().__init__()
         self.name = "Weaviate"
-        self.description = f"Vectorizes documents and queries using Weaviate's In-House Embedding Service."
+        self.description = "Vectorizes documents and queries using Weaviate's In-House Embedding Service."
         models = ["Embedding Service"]
 
         api_key = os.getenv("EMBEDDING_SERVICE_KEY")
@@ -25,7 +24,7 @@ class WeaviateEmbedder(Embedding):
             "Model": InputConfig(
                 type="dropdown",
                 value=models[0],
-                description=f"Select a Weaviate Embedding Service Model",
+                description="Select a Weaviate Embedding Service Model",
                 values=models,
             ),
         }

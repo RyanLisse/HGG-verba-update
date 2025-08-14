@@ -1,13 +1,13 @@
-import os
-import requests
-import aiohttp
 import json
+import os
+
+import aiohttp
+import requests
+from wasabi import msg
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment, get_token
-
-from wasabi import msg
 
 
 class CohereEmbedder(Embedding):

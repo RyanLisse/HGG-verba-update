@@ -6,9 +6,9 @@ import { FaStar } from "react-icons/fa";
 interface VerbaButtonProps {
   title?: string;
   Icon?: typeof FaStar;
-  onClick?: (...args: any[]) => void; // Updated to accept any number of arguments
-  onMouseEnter?: (...args: any[]) => void;
-  onMouseLeave?: (...args: any[]) => void;
+  onClick?: (...args: unknown[]) => void;
+  onMouseEnter?: (...args: unknown[]) => void;
+  onMouseLeave?: (...args: unknown[]) => void;
   disabled?: boolean;
   key?: string;
   className?: string;
@@ -21,7 +21,7 @@ interface VerbaButtonProps {
   loading?: boolean;
   text_size?: string;
   icon_size?: number;
-  onClickParams?: any[]; // New prop to pass additional parameters
+  onClickParams?: unknown[];
 }
 
 const VerbaButton: React.FC<VerbaButtonProps> = ({

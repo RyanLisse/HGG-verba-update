@@ -1,11 +1,12 @@
-import os
 import json
-import aiohttp
-from typing import List, Dict, AsyncGenerator
+import os
+from collections.abc import AsyncGenerator
 
+import aiohttp
+
+from goldenverba.components.embedding.CohereEmbedder import get_models
 from goldenverba.components.interfaces import Generator
 from goldenverba.components.types import InputConfig
-from goldenverba.components.embedding.CohereEmbedder import get_models
 from goldenverba.components.util import get_environment, get_token
 
 
@@ -40,11 +41,11 @@ class CohereGenerator(Generator):
 
     async def generate_stream(
         self,
-        config: Dict,
+        config: dict,
         query: str,
         context: str,
-        conversation: List[Dict] = [],
-    ) -> AsyncGenerator[Dict, None]:
+        conversation: list[dict] = [],
+    ) -> AsyncGenerator[dict, None]:
         model = config.get("Model").value
         api_key = get_environment(
             config, "API Key", "COHERE_API_KEY", "No Cohere API Key found"
@@ -95,9 +96,9 @@ class CohereGenerator(Generator):
         self,
         query: str,
         context: str,
-        conversation: List[Dict],
+        conversation: list[dict],
         system_message: str,
-    ) -> tuple[str, List[Dict]]:
+    ) -> tuple[str, list[dict]]:
         """Prepare the message and chat history for the Cohere API request."""
         chat_history = [
             {
@@ -117,7 +118,7 @@ class CohereGenerator(Generator):
         return message, chat_history
 
     @staticmethod
-    def _process_response(line: bytes) -> Dict:
+    def _process_response(line: bytes) -> dict:
         """Process a single line of response from the Cohere API."""
         json_data = json.loads(line.decode("utf-8"))
         return {
@@ -128,6 +129,6 @@ class CohereGenerator(Generator):
         }
 
     @staticmethod
-    def _error_response(message: str) -> Dict:
+    def _error_response(message: str) -> dict:
         """Return an error response."""
         return {"message": message, "finish_reason": "stop"}

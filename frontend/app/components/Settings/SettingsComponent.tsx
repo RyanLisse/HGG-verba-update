@@ -64,7 +64,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     addStatusMessage(`Changes to ${selectedTheme.theme_name} saved`, "SUCCESS");
   };
 
-  const updateValue = (title: keyof Theme, value: any) => {
+  const updateValue = (title: keyof Theme, value: string | number | boolean) => {
     setSelectedTheme((prev: Theme) => {
       const setting = prev[title];
       if (isTextFieldSetting(setting)) {
@@ -107,40 +107,37 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
     }
   };
 
+  // Type for all possible setting types
+  type ThemeSetting = TextFieldSetting | ImageFieldSetting | CheckboxSetting | ColorSetting | SelectSetting | NumberFieldSetting;
+
   // Type guards
-  function isTextFieldSetting(setting: any): setting is TextFieldSetting {
+  function isTextFieldSetting(setting: ThemeSetting): setting is TextFieldSetting {
     return setting.type === "text";
   }
 
-  function isImageFieldSetting(setting: any): setting is ImageFieldSetting {
+  function isImageFieldSetting(setting: ThemeSetting): setting is ImageFieldSetting {
     return setting.type === "image";
   }
 
-  function isCheckboxSetting(setting: any): setting is CheckboxSetting {
+  function isCheckboxSetting(setting: ThemeSetting): setting is CheckboxSetting {
     return setting.type === "check";
   }
 
-  function isColorSetting(setting: any): setting is ColorSetting {
+  function isColorSetting(setting: ThemeSetting): setting is ColorSetting {
     return setting.type === "color";
   }
 
-  function isSelectSetting(setting: any): setting is SelectSetting {
+  function isSelectSetting(setting: ThemeSetting): setting is SelectSetting {
     return setting.type === "select";
   }
 
-  function isNumberFieldSetting(setting: any): setting is NumberFieldSetting {
+  function isNumberFieldSetting(setting: ThemeSetting): setting is NumberFieldSetting {
     return setting.type === "number";
   }
 
   const renderSettingComponent = (
-    title: any,
-    setting_type:
-      | TextFieldSetting
-      | ImageFieldSetting
-      | CheckboxSetting
-      | ColorSetting
-      | SelectSetting
-      | NumberFieldSetting
+    title: keyof Theme,
+    setting_type: ThemeSetting
   ) => {
     return (
       <div key={title}>
@@ -243,7 +240,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full h-full p-4">
+    <div className="flex flex-col size-full p-4">
       <div className="flex justify-between items-center mb-4">
         <p className="text-2xl font-bold">Customize Theme</p>
         <select

@@ -1,34 +1,31 @@
-import os
+import asyncio
+import hashlib
 import importlib
-import math
 import json
+import math
+import os
+from copy import deepcopy
 from datetime import datetime
 
 from dotenv import load_dotenv
 from wasabi import msg
-import asyncio
-
-from copy import deepcopy
-import hashlib
-
-from goldenverba.server.helpers import LoggerManager
 from weaviate.client import WeaviateAsyncClient
 
 from goldenverba.components.document import Document
-from goldenverba.server.types import (
-    FileConfig,
-    FileStatus,
-    ChunkScore,
-    Credentials,
-)
-
 from goldenverba.components.managers import (
-    ReaderManager,
     ChunkerManager,
     EmbeddingManager,
-    RetrieverManager,
     GeneratorManager,
+    ReaderManager,
+    RetrieverManager,
     WeaviateManager,
+)
+from goldenverba.server.helpers import LoggerManager
+from goldenverba.server.types import (
+    ChunkScore,
+    Credentials,
+    FileConfig,
+    FileStatus,
 )
 
 load_dotenv()
@@ -106,7 +103,7 @@ class VerbaManager:
             )
             if duplicate_uuid is not None and not fileConfig.overwrite:
                 raise Exception(f"{fileConfig.filename} already exists in Verba")
-            elif duplicate_uuid is not None and fileConfig.overwrite:
+            if duplicate_uuid is not None and fileConfig.overwrite:
                 await self.weaviate_manager.delete_document(client, duplicate_uuid)
                 await logger.send_report(
                     fileConfig.fileID,
@@ -175,7 +172,7 @@ class VerbaManager:
             await logger.send_report(
                 fileConfig.fileID,
                 status=FileStatus.ERROR,
-                message=f"Import for {fileConfig.filename} failed: {str(e)}",
+                message=f"Import for {fileConfig.filename} failed: {e!s}",
                 took=0,
             )
             return
@@ -209,7 +206,7 @@ class VerbaManager:
             )
             if duplicate_uuid is not None and not currentFileConfig.overwrite:
                 raise Exception(f"{document.title} already exists in Verba")
-            elif duplicate_uuid is not None and currentFileConfig.overwrite:
+            if duplicate_uuid is not None and currentFileConfig.overwrite:
                 await self.weaviate_manager.delete_document(client, duplicate_uuid)
 
             chunk_task = asyncio.create_task(
@@ -265,10 +262,10 @@ class VerbaManager:
             await logger.send_report(
                 currentFileConfig.fileID,
                 status=FileStatus.ERROR,
-                message=f"Import for {fileConfig.filename} failed: {str(e)}",
+                message=f"Import for {fileConfig.filename} failed: {e!s}",
                 took=round(loop.time() - start_time, 2),
             )
-            raise Exception(f"Import for {fileConfig.filename} failed: {str(e)}")
+            raise Exception(f"Import for {fileConfig.filename} failed: {e!s}")
 
     # Configuration
 
@@ -363,13 +360,11 @@ class VerbaManager:
             if self.verify_config(loaded_config, new_config):
                 msg.info("Using Existing RAG Configuration")
                 return loaded_config
-            else:
-                msg.info("Using New RAG Configuration")
-                await self.set_rag_config(client, new_config)
-                return new_config
-        else:
             msg.info("Using New RAG Configuration")
+            await self.set_rag_config(client, new_config)
             return new_config
+        msg.info("Using New RAG Configuration")
+        return new_config
 
     async def load_theme_config(self, client):
         loaded_config = await self.weaviate_manager.get_config(
@@ -396,7 +391,7 @@ class VerbaManager:
         try:
             if os.getenv("VERBA_PRODUCTION") == "Demo":
                 return True
-            for a_component_key, b_component_key in zip(a, b):
+            for a_component_key, b_component_key in zip(a, b, strict=False):
                 if a_component_key != b_component_key:
                     msg.fail(
                         f"Config Validation Failed, component name mismatch: {a_component_key} != {b_component_key}"
@@ -413,7 +408,7 @@ class VerbaManager:
                     return False
 
                 for a_rag_component_key, b_rag_component_key in zip(
-                    a_component, b_component
+                    a_component, b_component, strict=False
                 ):
                     if a_rag_component_key != b_rag_component_key:
                         msg.fail(
@@ -432,7 +427,7 @@ class VerbaManager:
                         )
                         return False
 
-                    for a_config_key, b_config_key in zip(a_config, b_config):
+                    for a_config_key, b_config_key in zip(a_config, b_config, strict=False):
                         if a_config_key != b_config_key:
                             msg.fail(
                                 f"Config Validation Failed, component name mismatch: {a_config_key} != {b_config_key}"
@@ -457,7 +452,7 @@ class VerbaManager:
             return True
 
         except Exception as e:
-            msg.fail(f"Config Validation failed: {str(e)}")
+            msg.fail(f"Config Validation failed: {e!s}")
             return False
 
     async def reset_rag_config(self, client):
@@ -785,20 +780,18 @@ class ClientManager:
             if cred_hash in self.clients:
                 msg.info("Found existing Client")
                 return self.clients[cred_hash]["client"]
-            else:
-                msg.warn("Connecting new Client")
-                try:
-                    client = await self.manager.connect(_credentials, port)
-                    if client:
-                        self.clients[cred_hash] = {
-                            "client": client,
-                            "timestamp": datetime.now(),
-                        }
-                        return client
-                    else:
-                        raise Exception("Client not created")
-                except Exception as e:
-                    raise e
+            msg.warn("Connecting new Client")
+            try:
+                client = await self.manager.connect(_credentials, port)
+                if client:
+                    self.clients[cred_hash] = {
+                        "client": client,
+                        "timestamp": datetime.now(),
+                    }
+                    return client
+                raise Exception("Client not created")
+            except Exception as e:
+                raise e
 
     async def disconnect(self):
         msg.warn("Disconnecting Clients!")

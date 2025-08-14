@@ -339,7 +339,7 @@ export type VerbaDocument = {
   fileSize: number;
   labels: string[];
   source: string;
-  meta: any;
+  meta: unknown;
 };
 
 export type VerbaChunk = {

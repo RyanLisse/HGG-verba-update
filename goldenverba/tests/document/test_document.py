@@ -1,6 +1,4 @@
-import pytest
-from goldenverba.components.document import Document, create_document
-from goldenverba.server.types import FileConfig
+from goldenverba.components.document import Document
 
 
 def test_document_initialization():
