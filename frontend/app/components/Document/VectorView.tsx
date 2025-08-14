@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { Spinner } from "@/app/components/ui/spinner";
+import { Range } from "@/app/components/ui/range";
 import VerbaButton from "../Navigation/VerbaButton";
 
 import { vectorToColor } from "./util";
@@ -395,15 +396,12 @@ const VectorView: React.FC<VectorViewProps> = ({
               {/* Zoom */}
               <div className="flex items-center gap-2 w-full">
                 <p className="text-text-alt-verba text-sm">Zoom</p>
-                <input
-                  onChange={(e) => {
-                    setViewMultiplication(Number(e.target.value));
-                  }}
-                  type="range"
+                <Range
                   min={0}
                   max={1000}
+                  step={1}
                   value={viewMultiplication}
-                  className="grow w-full"
+                  onChange={(e) => setViewMultiplication(Number(e.currentTarget.value))}
                 />
               </div>
             </div>

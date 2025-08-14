@@ -18,6 +18,7 @@ import { connectToVerba } from "@/app/api";
 
 import VerbaButton from "../Navigation/VerbaButton";
 import { Input } from "@/app/components/ui/input";
+import { InputWithIcon } from "@/app/components/ui/input-with-icon";
 
 import { Credentials, RAGConfig, Theme, Themes } from "@/app/types";
 
@@ -358,46 +359,40 @@ const LoginView: React.FC<LoginViewProps> = ({
                       }}
                     >
                       <div className="flex gap-2 items-center justify-between">
-                        <div className="flex items-center gap-2 w-full bg-bg-verba shadow-md rounded px-2 py-1">
-                          <FaDatabase className="text-text-alt-verba" />
-                          <Input
-                            type="text"
-                            name="username"
-                            value={weaviateURL}
-                            onChange={(e) => setWeaviateURL(e.target.value)}
-                            placeholder="Weaviate URL"
-                            autoComplete="username"
-                            className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                          />
-                        </div>
+                        <InputWithIcon
+                          icon={<FaDatabase />}
+                          type="text"
+                          name="username"
+                          value={weaviateURL}
+                          onChange={(e) => setWeaviateURL(e.target.value)}
+                          placeholder="Weaviate URL"
+                          autoComplete="username"
+                          containerClassName="w-full"
+                        />
                         {selectedDeployment == "Custom" && (
-                          <div className="flex items-center gap-2 bg-bg-verba shadow-md rounded px-2 py-1">
-                            <p className="text-text-alt-verba text-xs">Port</p>
-                            <Input
-                              type="text"
-                              name="Port"
-                              value={port}
-                              onChange={(e) => setPort(e.target.value)}
-                              placeholder="Port"
-                              autoComplete="port"
-                              className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 w-24"
-                            />
-                          </div>
+                          <InputWithIcon
+                            icon={<p className="text-text-alt-verba text-xs m-0">Port</p>}
+                            type="text"
+                            name="Port"
+                            value={port}
+                            onChange={(e) => setPort(e.target.value)}
+                            placeholder="Port"
+                            autoComplete="port"
+                            className="w-24"
+                          />
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 bg-bg-verba shadow-md rounded px-2 py-1 mt-4">
-                        <FaKey className="text-text-alt-verba" />
-                        <Input
-                          type="password"
-                          name="current-password"
-                          value={weaviateAPIKey}
-                          onChange={(e) => setWeaviateAPIKey(e.target.value)}
-                          placeholder="API Key"
-                          autoComplete="current-password"
-                          className="bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                        />
-                      </div>
+                      <InputWithIcon
+                        icon={<FaKey />}
+                        type="password"
+                        name="current-password"
+                        value={weaviateAPIKey}
+                        onChange={(e) => setWeaviateAPIKey(e.target.value)}
+                        placeholder="API Key"
+                        autoComplete="current-password"
+                        containerClassName="mt-4"
+                      />
                       <div className="flex justify-between gap-4 mt-4">
                         <div className="flex flex-col w-full gap-2">
                           <div className="flex flex-col justify-start gap-2 w-full">

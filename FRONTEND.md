@@ -14,6 +14,12 @@ Verba's Frontend is a [NextJS](https://nextjs.org/) application using [TailwindC
 - DaisyUI has been removed. All dialogs, dropdowns, inputs, checkboxes, toggles, spinners, and separators now use shadcn/ui.
 - For complex layouts/interactions, we take inspiration from Kibo UI, Origin UI, and Blocks, while keeping shadcn primitives for consistency.
 
+## Tailwind v4 Upgrade
+- Upgraded to `tailwindcss@^4`. Theme tokens are defined via `@theme inline` in `app/globals.css`.
+- HSL wrappers moved into CSS variables; `@theme` references use raw `var(--...)` per Tailwind v4 guidance.
+- Custom shadcn tokens (`background`, `foreground`, `ring`, etc.) are now available as Tailwind colors (`bg-background`, `text-foreground`, ...).
+- Where applicable, prefer `size-*` utilities over paired `w-*/h-*`.
+
 ## 🚀 Setting Up the Frontend
 
 To get your local copy of the Verba frontend up and running, please follow these simple steps:

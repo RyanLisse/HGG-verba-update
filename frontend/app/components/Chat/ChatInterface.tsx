@@ -10,14 +10,7 @@ import { BiError } from "react-icons/bi";
 import { IoMdAddCircle } from "react-icons/io";
 import VerbaButton from "../Navigation/VerbaButton";
 
-import {
-  updateRAGConfig,
-  sendUserQuery,
-  fetchDatacount,
-  fetchRAGConfig,
-  fetchSuggestions,
-  fetchLabels,
-} from "@/app/api";
+import { updateRAGConfig, sendUserQuery } from "@/app/api";
 import { getWebSocketApiHost } from "@/app/util";
 import {
   Credentials,
@@ -51,6 +44,12 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { Spinner } from "@/app/components/ui/spinner";
 import { Textarea } from "@/app/components/ui/textarea";
+import {
+  useDatacountQuery,
+  useLabelsQuery,
+  useRAGConfigQuery,
+  useSuggestionsQuery,
+} from "@/app/lib/queries";
 
 interface ChatInterfaceProps {
   credentials: Credentials;
@@ -99,14 +98,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     []
   );
 
-  const [labels, setLabels] = useState<string[]>([]);
+  // Labels filter is local UI state, but source labels come from query
   const [filterLabels, setFilterLabels] = useState<string[]>([]);
 
   const [selectedDocumentScore, setSelectedDocumentScore] = useState<
     string | null
   >(null);
 
-  const [currentDatacount, setCurrentDatacount] = useState(0);
+  // Datacount derived from query
 
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -123,13 +122,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setReconnect(true);
   }, []);
 
+  // RAG config bootstrap via query (keeps parent state in sync on demand)
+  const ragQuery = useRAGConfigQuery(credentials);
   useEffect(() => {
-    if (RAGConfig) {
-      retrieveDatacount();
-    } else {
-      setCurrentDatacount(0);
+    if (ragQuery.data?.rag_config) {
+      setRAGConfig(ragQuery.data.rag_config);
     }
-  }, [currentEmbedding, currentPage, documentFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ragQuery.data?.rag_config]);
 
   useEffect(() => {
     setMessages((prev) => {
@@ -233,21 +233,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
   }, [reconnect]);
 
-  useEffect(() => {
-    if (RAGConfig) {
-      retrieveDatacount();
-    } else {
-      setCurrentDatacount(0);
-    }
-  }, [RAGConfig]);
+  const labelsQuery = useLabelsQuery(credentials);
+  const datacountQuery = useDatacountQuery(
+    credentials,
+    currentEmbedding,
+    documentFilter
+  );
+  const labels = labelsQuery.data?.labels ?? [];
+  const currentDatacount = datacountQuery.data?.datacount ?? 0;
 
   const retrieveRAGConfig = async () => {
-    const config = await fetchRAGConfig(credentials);
-    if (config) {
-      setRAGConfig(config.rag_config);
-    } else {
-      addStatusMessage("Failed to fetch RAG Config", "ERROR");
-    }
+    const res = await ragQuery.refetch();
+    if (res.data?.rag_config) setRAGConfig(res.data.rag_config);
+    else addStatusMessage("Failed to fetch RAG Config", "ERROR");
   };
 
   const sendUserMessage = async () => {
@@ -360,25 +358,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-  const retrieveDatacount = async () => {
-    try {
-      const data: DataCountPayload | null = await fetchDatacount(
-        currentEmbedding,
-        documentFilter,
-        credentials
-      );
-      const labels: LabelsResponse | null = await fetchLabels(credentials);
-      if (data) {
-        setCurrentDatacount(data.datacount);
-      }
-      if (labels) {
-        setLabels(labels.labels);
-      }
-    } catch (error) {
-      console.error("Failed to fetch from API:", error);
-      addStatusMessage("Failed to fetch datacount: " + error, "ERROR");
-    }
-  };
+  // Suggestions (debounced behavior can be added later)
+  const suggestionEnabled = Boolean(
+    RAGConfig &&
+      RAGConfig["Retriever"].components[RAGConfig["Retriever"].selected].config[
+        "Suggestion"
+      ].value
+  );
+  const suggestionsQuery = useSuggestionsQuery(
+    credentials,
+    userInput,
+    3,
+    suggestionEnabled
+  );
 
   const reconnectToVerba = () => {
     setReconnect((prevState) => !prevState);
@@ -395,17 +387,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   const handleSuggestions = async () => {
-    if (
-      RAGConfig &&
-      RAGConfig["Retriever"].components[RAGConfig["Retriever"].selected].config[
-        "Suggestion"
-      ].value
-    ) {
-      const suggestions = await fetchSuggestions(userInput, 3, credentials);
-      if (suggestions) {
-        setCurrentSuggestions(suggestions.suggestions);
-      }
-    }
+    setCurrentSuggestions(suggestionsQuery.data?.suggestions ?? []);
   };
 
   return (

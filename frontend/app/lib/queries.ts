@@ -14,6 +14,7 @@ import {
   fetchLabels,
   fetchRAGConfig,
   fetchDatacount,
+  fetchSuggestions,
   deleteDocument,
 } from "@/app/api";
 
@@ -79,3 +80,15 @@ export function useDeleteDocumentMutation(credentials: Credentials) {
   });
 }
 
+export function useSuggestionsQuery(
+  credentials: Credentials,
+  query: string,
+  n: number,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: ["suggestions", credKey(credentials), query, n],
+    queryFn: () => fetchSuggestions(query, n, credentials),
+    enabled: Boolean(credentials?.url) && enabled && query.trim().length > 0,
+  });
+}
