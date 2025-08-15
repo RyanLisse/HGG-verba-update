@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import React from "react";
+import type React from 'react';
 
-interface UserModalComponentProps {
+type UserModalComponentProps<T = unknown> = {
   modal_id: string;
   title: string;
   text: string;
-  triggerAccept?: null | ((a: any) => void);
-  triggerValue?: any | null;
+  triggerAccept?: null | ((value: T) => void);
+  triggerValue?: T | null;
   triggerString?: string | null;
-}
+};
 
-import VerbaButton from "./VerbaButton";
+import VerbaButton from './VerbaButton';
 
 const UserModalComponent: React.FC<UserModalComponentProps> = ({
   title,
@@ -22,26 +22,26 @@ const UserModalComponent: React.FC<UserModalComponentProps> = ({
   triggerValue,
 }) => {
   return (
-    <dialog id={modal_id} className="modal">
+    <dialog className="modal" id={modal_id}>
       <div className="modal-box flex flex-col gap-2">
         <h3 className="font-bold text-lg">{title}</h3>
         <p className="whitespace-pre-wrap">{text}</p>
         <div className="modal-action">
-          <form method="dialog" className="flex gap-2">
+          <form className="flex gap-2" method="dialog">
             {triggerAccept && triggerString && (
               <VerbaButton
-                type="submit"
-                title={triggerString}
                 onClick={() => {
                   triggerAccept(triggerValue);
                 }}
+                title={triggerString}
+                type="submit"
               />
             )}
             <VerbaButton
-              type="submit"
-              title="Cancel"
-              selected_color="bg-warning-verba"
               selected={true}
+              selected_color="bg-warning-verba"
+              title="Cancel"
+              type="submit"
             />
           </form>
         </div>

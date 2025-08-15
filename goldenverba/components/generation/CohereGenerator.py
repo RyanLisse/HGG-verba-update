@@ -35,7 +35,10 @@ class CohereGenerator(Generator):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Cohere API Key here or set it as environment variable `COHERE_API_KEY`",
+                description=(
+                    "You can set your Cohere API Key here or set it as "
+                    "environment variable `COHERE_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -44,8 +47,10 @@ class CohereGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ) -> AsyncGenerator[dict, None]:
+        if conversation is None:
+            conversation = []
         model = config.get("Model").value
         api_key = get_environment(
             config, "API Key", "COHERE_API_KEY", "No Cohere API Key found"
@@ -75,19 +80,21 @@ class CohereGenerator(Generator):
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     self.url + "/chat", json=data, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        async for line in response.content:
-                            if line.strip():
-                                yield self._process_response(line)
-                    else:
-                        error_message = await response.text()
-                        yield self._error_response(
-                            f"HTTP Error {response.status}: {error_message}"
-                        )
+                ) as response,
+            ):
+                if response.status == 200:
+                    async for line in response.content:
+                        if line.strip():
+                            yield self._process_response(line)
+                else:
+                    error_message = await response.text()
+                    yield self._error_response(
+                        f"HTTP Error {response.status}: {error_message}"
+                    )
 
         except Exception as e:
             yield self._error_response(str(e))

@@ -15,14 +15,16 @@ from goldenverba.server.types import FileConfig
 
 class UnstructuredReader(Reader):
     """
-    Unstructured API Reader for importing multiple file types using the Unstructured.io API.
+    Unstructured API Reader for importing multiple file types using the
+    Unstructured.io API.
     """
 
     def __init__(self):
         super().__init__()
         self.requires_env = ["UNSTRUCTURED_API_KEY"]
         self.name = "Unstructured IO"
-        self.description = "Uses the Unstructured API to import multiple file types such as plain text and documents"
+        self.description = "Uses the Unstructured API to import multiple file types " \
+                           "such as plain text and documents"
 
         # Define configuration options
         self.config = {
@@ -89,21 +91,19 @@ class UnstructuredReader(Reader):
         )
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    api_url, headers=headers, data=file_data
-                ) as response:
-                    response.raise_for_status()  # Raise an exception for bad status codes
-                    json_response = await response.json()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(api_url, headers=headers, data=file_data) as response,
+            ):
+                response.raise_for_status()  # Raise an exception for bad status codes
+                json_response = await response.json()
 
-                    if "detail" in json_response:
-                        raise ValueError(f"API error: {json_response['detail']}")
+                if "detail" in json_response:
+                    raise ValueError(f"API error: {json_response['detail']}")
 
-                    file_content = "".join(
-                        chunk.get("text", "") for chunk in json_response
-                    )
+                file_content = "".join(chunk.get("text", "") for chunk in json_response)
 
-                    return [create_document(file_content, fileConfig)]
+                return [create_document(file_content, fileConfig)]
 
         except requests.RequestException as e:
             raise Exception(

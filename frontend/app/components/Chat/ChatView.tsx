@@ -1,32 +1,32 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import ChatInterface from "./ChatInterface";
-
-import DocumentExplorer from "../Document/DocumentExplorer";
-
-import {
-  Credentials,
-  RAGConfig,
+import type React from 'react';
+import { useState } from 'react';
+import type {
   ChunkScore,
-  Theme,
+  Credentials,
   DocumentFilter,
-} from "@/app/types";
+  RAGConfig,
+  Theme,
+} from '@/app/types';
 
-interface ChatViewProps {
+import DocumentExplorer from '../Document/DocumentExplorer';
+import ChatInterface from './ChatInterface';
+
+type ChatViewProps = {
   selectedTheme: Theme;
   credentials: Credentials;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   currentPage: string;
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   documentFilter: DocumentFilter[];
   setDocumentFilter: React.Dispatch<React.SetStateAction<DocumentFilter[]>>;
-}
+};
 
 const ChatView: React.FC<ChatViewProps> = ({
   credentials,
@@ -44,38 +44,36 @@ const ChatView: React.FC<ChatViewProps> = ({
     []
   );
   return (
-    <div className="flex md:flex-row flex-col justify-center gap-3 h-[50vh] md:h-[80vh] ">
-      <div
-        className={`${selectedDocument ? "hidden md:flex md:w-[45vw]" : "w-full md:w-[45vw] md:flex"}`}
-      >
-        <ChatInterface
+    <div className="verba-content-wrapper">
+      {/* Document Sidebar */}
+      <div className="verba-sidebar">
+        <DocumentExplorer
           addStatusMessage={addStatusMessage}
-          production={production}
+          chunkScores={selectedChunkScore}
           credentials={credentials}
-          selectedTheme={selectedTheme}
-          setSelectedDocument={setSelectedDocument}
-          setSelectedChunkScore={setSelectedChunkScore}
-          currentPage={currentPage}
-          RAGConfig={RAGConfig}
-          setRAGConfig={setRAGConfig}
           documentFilter={documentFilter}
+          production={production}
+          selectedDocument={selectedDocument}
+          selectedTheme={selectedTheme}
           setDocumentFilter={setDocumentFilter}
+          setSelectedDocument={setSelectedDocument}
         />
       </div>
 
-      <div
-        className={`${selectedDocument ? "md:w-[55vw] w-full flex" : "hidden md:flex md:w-[55vw]"}`}
-      >
-        <DocumentExplorer
+      {/* Main Chat Interface */}
+      <div className="verba-main-content">
+        <ChatInterface
           addStatusMessage={addStatusMessage}
           credentials={credentials}
-          production={production}
+          currentPage={currentPage}
           documentFilter={documentFilter}
-          setDocumentFilter={setDocumentFilter}
-          setSelectedDocument={setSelectedDocument}
+          production={production}
+          RAGConfig={RAGConfig}
           selectedTheme={selectedTheme}
-          selectedDocument={selectedDocument}
-          chunkScores={selectedChunkScore}
+          setDocumentFilter={setDocumentFilter}
+          setRAGConfig={setRAGConfig}
+          setSelectedChunkScore={setSelectedChunkScore}
+          setSelectedDocument={setSelectedDocument}
         />
       </div>
     </div>

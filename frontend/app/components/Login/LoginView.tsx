@@ -1,139 +1,31 @@
-import * as THREE from "three";
-import React, { useState, useEffect, useMemo } from "react";
-import { Canvas } from "@react-three/fiber";
-import { PresentationControls, useGLTF, Float } from "@react-three/drei";
-import GUI from "lil-gui";
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { CgWebsite } from 'react-icons/cg';
+import {
+  FaBackspace,
+  FaDatabase,
+  FaDocker,
+  FaKey,
+  FaLaptopCode,
+} from 'react-icons/fa';
+import { GrConnect } from 'react-icons/gr';
+import { HiMiniSparkles } from 'react-icons/hi2';
+import { TbDatabaseEdit } from 'react-icons/tb';
 
-import { FaDatabase } from "react-icons/fa";
-import { FaDocker } from "react-icons/fa";
-import { FaKey } from "react-icons/fa";
-import { FaLaptopCode } from "react-icons/fa";
-import { GrConnect } from "react-icons/gr";
-import { CgWebsite } from "react-icons/cg";
-import { FaBackspace } from "react-icons/fa";
-import { HiMiniSparkles } from "react-icons/hi2";
-import { TbDatabaseEdit } from "react-icons/tb";
+import { connectToVerba } from '@/app/api';
+import type { Credentials, RAGConfig, Theme, Themes } from '@/app/types';
+import VerbaButton from '../Navigation/VerbaButton';
+import { Input } from '@/app/components/ui/input';
 
-import { connectToVerba } from "@/app/api";
-
-import VerbaButton from "../Navigation/VerbaButton";
-
-import { Credentials, RAGConfig, Theme, Themes } from "@/app/types";
-
-let prefix = "";
-if (process.env.NODE_ENV === "production") {
-  prefix = "/static";
-} else {
-  prefix = "";
-}
-
-const VerbaThree = ({
-  color,
-  useMaterial,
-  model_path,
-}: {
-  color: string;
-  useMaterial: boolean;
-  model_path: string;
-}) => {
-  const verba_model = useGLTF(prefix + model_path);
-
-  const material = useMemo(
-    () =>
-      new THREE.MeshMatcapMaterial({
-        color: "#e6e6e6",
-        matcap: new THREE.TextureLoader().load(prefix + "/ice_cap.png"), // Add this line
-      }),
-    []
-  );
-
-  const material1 = useMemo(
-    () =>
-      new THREE.MeshPhysicalMaterial({
-        metalness: 0.4,
-        roughness: 0.4,
-        color: "#ffe229",
-        ior: 1,
-        thickness: 1,
-        transparent: false,
-        wireframe: false,
-        clearcoat: 1,
-        clearcoatRoughness: 0.0,
-      }),
-    []
-  );
-
-  useEffect(() => {
-    const enableGUI = false; // Set this to true to re-enable the GUI
-
-    if (enableGUI) {
-      const gui = new GUI();
-      const materialFolder = gui.addFolder("Material");
-
-      materialFolder.add(material as any, "roughness", 0, 1).name("roughness");
-      materialFolder.add(material as any, "metalness", 0, 1).name("metalness");
-      materialFolder.add(material as any, "clearcoat", 0, 1).name("clearcoat");
-      materialFolder
-        .add(material as any, "clearcoatRoughness", 0, 1)
-        .name("clearcoatRoughness");
-      materialFolder.addColor(material as any, "color").name("color");
-      return () => {
-        gui.destroy();
-      };
-    }
-  }, [material]);
-
-  // Apply the shiny material to all meshes in the model
-  useEffect(() => {
-    verba_model.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        if (!useMaterial) {
-          child.material = material;
-        } else {
-          child.material.roughness = 0.3;
-          child.material.metalness = 0.2;
-        }
-        child.castShadow = true;
-        child.receiveShadow = true;
-      }
-    });
-  }, [verba_model, material]);
-
-  return (
-    <>
-      <color args={[color]} attach="background" />
-      <PresentationControls
-        global
-        rotation={[0.13, 0.1, 0]}
-        polar={[-0.4, 0.2]}
-        azimuth={[-1, 0.75]}
-        snap={{ mass: 4, tension: 400 } as any}
-      >
-        <Float speed={2} rotationIntensity={1}>
-          <primitive
-            object={verba_model.scene}
-            position-y={0}
-            position-x={0}
-            rotation-y={0.2}
-            rotation-x={-0.2}
-            position-z={0}
-            scale={0.6}
-          />
-        </Float>
-      </PresentationControls>
-    </>
-  );
-};
-
-interface LoginViewProps {
+type LoginViewProps = {
   credentials: Credentials;
   setCredentials: (c: Credentials) => void;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
   setRAGConfig: (RAGConfig: RAGConfig | null) => void;
   setSelectedTheme: (theme: Theme) => void;
   setThemes: (themes: Themes) => void;
-  production: "Local" | "Demo" | "Production";
-}
+  production: 'Local' | 'Demo' | 'Production';
+};
 
 const LoginView: React.FC<LoginViewProps> = ({
   credentials,
@@ -150,15 +42,15 @@ const LoginView: React.FC<LoginViewProps> = ({
 
   const [selectStage, setSelectStage] = useState(true);
 
-  const [errorText, setErrorText] = useState("");
+  const [errorText, setErrorText] = useState('');
 
   const [selectedDeployment, setSelectedDeployment] = useState<
-    "Weaviate" | "Docker" | "Local" | "Custom"
-  >("Local");
+    'Weaviate' | 'Docker' | 'Local' | 'Custom'
+  >('Local');
 
   const [weaviateURL, setWeaviateURL] = useState(credentials.url);
   const [weaviateAPIKey, setWeaviateAPIKey] = useState(credentials.key);
-  const [port, setPort] = useState("8080");
+  const [port, setPort] = useState('8080');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -168,267 +60,267 @@ const LoginView: React.FC<LoginViewProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Auto-connect to Weaviate instance (Local or Docker)
+  useEffect(() => {
+    if (
+      !isLoading &&
+      selectStage &&
+      credentials.url &&
+      (credentials.default_deployment === 'Local' ||
+        credentials.default_deployment === 'Docker')
+    ) {
+      // Auto-connect without showing deployment screen
+      setWeaviateURL(credentials.url);
+      setWeaviateAPIKey(credentials.key);
+
+      // Set deployment type based on environment
+      const deploymentType =
+        credentials.default_deployment === 'Docker' ? 'Docker' : 'Local';
+      setSelectedDeployment(deploymentType);
+      setSelectStage(false);
+    }
+  }, [isLoading, selectStage, credentials]);
+
+  const connect = useCallback(
+    async (deployment: 'Local' | 'Weaviate' | 'Docker' | 'Custom') => {
+      setErrorText('');
+      setIsConnecting(true);
+      const response = await connectToVerba(
+        deployment,
+        weaviateURL,
+        weaviateAPIKey,
+        port
+      );
+      if (response) {
+        if (!('error' in response)) {
+          setIsLoggedIn(false);
+          setErrorText(JSON.stringify(response));
+        } else if (response.connected === false) {
+          setIsLoggedIn(false);
+          setErrorText(
+            response.error === ''
+              ? "Couldn't connect to Weaviate"
+              : response.error
+          );
+        } else {
+          setIsLoggedIn(true);
+          setCredentials({
+            deployment,
+            key: weaviateAPIKey,
+            url: weaviateURL,
+            default_deployment: credentials.default_deployment,
+          });
+          setRAGConfig(response.rag_config);
+          if (response.themes) {
+            setThemes(response.themes);
+          }
+          if (response.theme) {
+            setSelectedTheme(response.theme);
+          }
+        }
+      }
+      setIsConnecting(false);
+    },
+    [
+      weaviateURL,
+      weaviateAPIKey,
+      port,
+      setIsLoggedIn,
+      setCredentials,
+      setRAGConfig,
+      setThemes,
+      setSelectedTheme,
+      credentials.default_deployment,
+    ]
+  );
+
   useEffect(() => {
     if (credentials.default_deployment) {
       setSelectedDeployment(credentials.default_deployment);
       connect(credentials.default_deployment);
     }
-  }, [credentials]);
-
-  const connect = async (
-    deployment: "Local" | "Weaviate" | "Docker" | "Custom"
-  ) => {
-    setErrorText("");
-    setIsConnecting(true);
-    const response = await connectToVerba(
-      deployment,
-      weaviateURL,
-      weaviateAPIKey,
-      port
-    );
-    if (response) {
-      if (!("error" in response)) {
-        setIsLoggedIn(false);
-        setErrorText(JSON.stringify(response));
-      } else if (response.connected == false) {
-        setIsLoggedIn(false);
-        setErrorText(
-          response.error == "" ? "Couldn't connect to Weaviate" : response.error
-        );
-      } else {
-        setIsLoggedIn(true);
-        setCredentials({
-          deployment: deployment,
-          key: weaviateAPIKey,
-          url: weaviateURL,
-          default_deployment: credentials.default_deployment,
-        });
-        setRAGConfig(response.rag_config);
-        if (response.themes) {
-          setThemes(response.themes);
-        }
-        if (response.theme) {
-          setSelectedTheme(response.theme);
-        }
-      }
-    }
-    setIsConnecting(false);
-  };
+  }, [credentials.default_deployment, connect]);
 
   return (
-    <div className="w-screen h-screen bg-white">
+    <div className="h-screen w-screen bg-white">
       <div
         className={`flex size-full transition-opacity duration-1000 ${
-          isLoading ? "opacity-0" : "opacity-100"
+          isLoading ? 'opacity-0' : 'opacity-100'
         }`}
       >
-        <div className="hidden md:flex md:w-1/2 lg:w-3/5 h-full">
-          <Canvas
-            camera={{ position: [0, 0, 4], fov: 50 }}
-            className="size-full touch-none"
-          >
-            <color attach="background" args={["#FAFAFA"]} />
-            <ambientLight intensity={0.5} />
-            <directionalLight
-              castShadow
-              position={[-1, 1, 1]}
-              intensity={1}
-              shadow-mapSize={1024}
-            />
-            <directionalLight
-              castShadow
-              position={[1, 1, -1]}
-              intensity={1}
-              shadow-mapSize={1024}
-            />
-            <directionalLight
-              castShadow
-              position={[0, 1, 1]}
-              intensity={1}
-              shadow-mapSize={1024}
-            />
-            <VerbaThree
-              color="#FAFAFA"
-              useMaterial={production == "Local" ? false : true}
-              model_path={
-                production == "Local" ? "/verba.glb" : "/weaviate.glb"
-              }
-            />
-          </Canvas>
+        <div className="hidden h-full md:flex md:w-1/2 lg:w-3/5">
+          <div className="size-full bg-linear-to-br from-[#FAFAFA] to-[#EAEAEA]" />
         </div>
-        <div className="w-full md:flex md:w-1/2 lg:w-2/5 h-full flex justify-center items-center p-5">
-          <div className="flex flex-col gap-8 items-center md:items-start justify-center w-4/5">
-            <div className="flex flex-col items-center md:items-start gap-2">
+        <div className="flex h-full w-full items-center justify-center p-5 md:flex md:w-1/2 lg:w-2/5">
+          <div className="flex w-4/5 flex-col items-center justify-center gap-8 md:items-start">
+            <div className="flex flex-col items-center gap-2 md:items-start">
               <div className="flex items-center gap-3">
-                <p className="font-light text-3xl md:text-4xl text-text-alt-verba">
+                <p className="font-light text-3xl text-text-alt-verba md:text-4xl">
                   Welcome to
                 </p>
-                <p className="font-light text-3xl md:text-4xl text-text-verba">
+                <p className="font-light text-3xl text-text-verba md:text-4xl">
                   Verba
                 </p>
               </div>
-              {production == "Local" && (
-                <p className="text-text-verba text-base lg:text-lg ">
+              {production === 'Local' && (
+                <p className="text-base text-text-verba lg:text-lg">
                   Choose your deployment
                 </p>
               )}
             </div>
             {selectStage ? (
-              <div className="flex flex-col justify-start gap-4 w-full">
-                {production == "Local" && (
-                  <div className="flex flex-col justify-start gap-2 w-full">
+              <div className="flex w-full flex-col justify-start gap-4">
+                {production === 'Local' && (
+                  <div className="flex w-full flex-col justify-start gap-2">
                     <VerbaButton
+                      disabled={isConnecting}
                       Icon={FaDatabase}
+                      onClick={() => {
+                        setSelectStage(false);
+                        setSelectedDeployment('Weaviate');
+                      }}
                       title="Weaviate"
-                      disabled={isConnecting}
-                      onClick={() => {
-                        setSelectStage(false);
-                        setSelectedDeployment("Weaviate");
-                      }}
                     />
                     <VerbaButton
-                      title="Docker"
+                      disabled={isConnecting}
                       Icon={FaDocker}
-                      disabled={isConnecting}
+                      loading={isConnecting && selectedDeployment === 'Docker'}
                       onClick={() => {
-                        setSelectedDeployment("Docker");
-                        connect("Docker");
+                        setSelectedDeployment('Docker');
+                        connect('Docker');
                       }}
-                      loading={isConnecting && selectedDeployment == "Docker"}
+                      title="Docker"
                     />
                     <VerbaButton
-                      title="Custom"
+                      disabled={isConnecting}
                       Icon={TbDatabaseEdit}
-                      disabled={isConnecting}
+                      loading={isConnecting && selectedDeployment === 'Custom'}
                       onClick={() => {
-                        setSelectedDeployment("Custom");
+                        setSelectedDeployment('Custom');
                         setSelectStage(false);
                       }}
-                      loading={isConnecting && selectedDeployment == "Custom"}
+                      title="Custom"
                     />
                     <VerbaButton
-                      title="Local"
+                      disabled={isConnecting}
                       Icon={FaLaptopCode}
-                      disabled={isConnecting}
+                      loading={isConnecting && selectedDeployment === 'Local'}
                       onClick={() => {
-                        setSelectedDeployment("Local");
-                        connect("Local");
+                        setSelectedDeployment('Local');
+                        connect('Local');
                       }}
-                      loading={isConnecting && selectedDeployment == "Local"}
+                      title="Local"
                     />
                   </div>
                 )}
-                {production == "Demo" && (
-                  <div className="flex flex-col justify-start gap-4 w-full">
+                {production === 'Demo' && (
+                  <div className="flex w-full flex-col justify-start gap-4">
                     <VerbaButton
+                      disabled={isConnecting}
                       Icon={HiMiniSparkles}
+                      loading={
+                        isConnecting && selectedDeployment === 'Weaviate'
+                      }
+                      onClick={() => {
+                        setSelectedDeployment('Weaviate');
+                        connect('Weaviate');
+                      }}
                       title="Start Demo"
-                      disabled={isConnecting}
-                      onClick={() => {
-                        setSelectedDeployment("Weaviate");
-                        connect("Weaviate");
-                      }}
-                      loading={isConnecting && selectedDeployment == "Weaviate"}
                     />
                   </div>
                 )}
-                {production == "Production" && (
-                  <div className="flex flex-col justify-start gap-4 w-full">
+                {production === 'Production' && (
+                  <div className="flex w-full flex-col justify-start gap-4">
                     <VerbaButton
                       Icon={HiMiniSparkles}
-                      title="Start Verba"
                       onClick={() => {
                         setSelectStage(false);
-                        setSelectedDeployment("Weaviate");
+                        setSelectedDeployment('Weaviate');
                       }}
+                      title="Start Verba"
                     />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col justify-start gap-4 w-full">
-                {production != "Demo" && (
-                  <div className="flex flex-col justify-start gap-4 w-full">
+              <div className="flex w-full flex-col justify-start gap-4">
+                {production !== 'Demo' && (
+                  <div className="flex w-full flex-col justify-start gap-4">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
                         connect(selectedDeployment);
                       }}
                     >
-                      <div className="flex gap-2 items-center justify-between">
-                        <label className="input flex items-center gap-2 border-none shadow-md w-full bg-bg-verba">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex w-full items-center gap-2">
                           <FaDatabase className="text-text-alt-verba" />
-                          <input
-                            type="text"
+                          <Input
+                            autoComplete="username"
                             name="username"
-                            value={weaviateURL}
                             onChange={(e) => setWeaviateURL(e.target.value)}
                             placeholder="Weaviate URL"
-                            className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
-                            autoComplete="username"
+                            value={weaviateURL}
                           />
-                        </label>
-                        {selectedDeployment == "Custom" && (
-                          <label className="input flex items-center gap-2 border-none shadow-md bg-bg-verba">
+                        </div>
+                        {selectedDeployment === 'Custom' && (
+                          <div className="flex items-center gap-2">
                             <p className="text-text-alt-verba text-xs">Port</p>
-                            <input
-                              type="text"
+                            <Input
+                              autoComplete="port"
                               name="Port"
-                              value={port}
                               onChange={(e) => setPort(e.target.value)}
                               placeholder="Port"
-                              className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
-                              autoComplete="port"
+                              value={port}
                             />
-                          </label>
+                          </div>
                         )}
                       </div>
 
-                      <label className="input flex items-center gap-2 border-none shadow-md bg-bg-verba mt-4">
+                      <div className="mt-4 flex items-center gap-2">
                         <FaKey className="text-text-alt-verba" />
-                        <input
-                          type="password"
+                        <Input
+                          autoComplete="current-password"
                           name="current-password"
-                          value={weaviateAPIKey}
                           onChange={(e) => setWeaviateAPIKey(e.target.value)}
                           placeholder="API Key"
-                          className="grow bg-button-verba text-text-alt-verba hover:text-text-verba w-full"
-                          autoComplete="current-password"
+                          type="password"
+                          value={weaviateAPIKey}
                         />
-                      </label>
-                      <div className="flex justify-between gap-4 mt-4">
-                        <div className="flex flex-col w-full gap-2">
-                          <div className="flex flex-col justify-start gap-2 w-full">
+                      </div>
+                      <div className="mt-4 flex justify-between gap-4">
+                        <div className="flex w-full flex-col gap-2">
+                          <div className="flex w-full flex-col justify-start gap-2">
                             <VerbaButton
                               Icon={GrConnect}
-                              title="Connect to Weaviate"
-                              type="submit"
+                              loading={isConnecting}
                               selected={true}
                               selected_color="bg-primary-verba"
-                              loading={isConnecting}
+                              title="Connect to Weaviate"
+                              type="submit"
                             />
-                            {selectedDeployment == "Weaviate" && (
+                            {selectedDeployment === 'Weaviate' && (
                               <VerbaButton
-                                Icon={CgWebsite}
-                                title="Register"
-                                type="button"
                                 disabled={isConnecting}
+                                Icon={CgWebsite}
                                 onClick={() =>
                                   window.open(
-                                    "https://console.weaviate.cloud",
-                                    "_blank"
+                                    'https://console.weaviate.cloud',
+                                    '_blank'
                                   )
                                 }
+                                title="Register"
+                                type="button"
                               />
                             )}
                             <VerbaButton
+                              disabled={isConnecting}
                               Icon={FaBackspace}
-                              title="Back"
-                              type="button"
-                              text_size="text-xs"
                               icon_size={12}
                               onClick={() => setSelectStage(true)}
-                              disabled={isConnecting}
+                              text_size="text-xs"
+                              title="Back"
+                              type="button"
                             />
                           </div>
                         </div>
@@ -439,7 +331,7 @@ const LoginView: React.FC<LoginViewProps> = ({
               </div>
             )}
             {errorText && (
-              <div className="bg-warning-verba p-4 rounded size-full overflow-auto">
+              <div className="size-full overflow-auto rounded bg-warning-verba p-4">
                 <p className="flex size-full whitespace-pre-wrap">
                   {errorText}
                 </p>

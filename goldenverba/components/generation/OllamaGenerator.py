@@ -15,7 +15,11 @@ class OllamaGenerator(Generator):
         super().__init__()
         self.name = "Ollama"
         self.url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.description = f"Generate answers using Ollama. If your Ollama instance is not running on {self.url}, you can change the URL by setting the OLLAMA_URL environment variable."
+        self.description = (
+            f"Generate answers using Ollama. If your Ollama instance is not "
+            f"running on {self.url}, you can change the URL by setting the "
+            f"OLLAMA_URL environment variable."
+        )
         self.context_window = 10000
 
         # Fetch available models
@@ -34,8 +38,10 @@ class OllamaGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ) -> AsyncGenerator[dict, None]:
+        if conversation is None:
+            conversation = []
         model = config.get("Model").value
         system_message = config.get("System Message").value
 
@@ -47,13 +53,15 @@ class OllamaGenerator(Generator):
         data = {"model": model, "messages": messages}
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(urljoin(self.url, "/api/chat"), json=data) as response:
-                    async for line in response.content:
-                        if line.strip():
-                            yield self._process_response(line)
-                        else:
-                            yield self._empty_response()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(urljoin(self.url, "/api/chat"), json=data) as response,
+            ):
+                async for line in response.content:
+                    if line.strip():
+                        yield self._process_response(line)
+                    else:
+                        yield self._empty_response()
 
         except Exception as e:
             yield self._error_response(
@@ -76,7 +84,10 @@ class OllamaGenerator(Generator):
             ],
             {
                 "role": "user",
-                "content": f"With this provided context: {context} Please answer this query: {query}",
+                "content": (
+                    f"With this provided context: {context} Please answer this "
+                    f"query: {query}"
+                ),
             },
         ]
         return messages

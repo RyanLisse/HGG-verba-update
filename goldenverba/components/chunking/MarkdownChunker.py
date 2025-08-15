@@ -52,20 +52,17 @@ class MarkdownChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         text_splitter = MarkdownHeaderTextSplitter(
             headers_to_split_on=HEADERS_TO_SPLIT_ON
         )
 
         char_end_i = -1
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
 
             for i, split_doc in enumerate(text_splitter.split_text(document.content)):
-
                 chunk_text = ""
 
                 # Add header content to retain context and improve retrieval
@@ -82,9 +79,10 @@ class MarkdownChunker(Chunker):
                 document.chunks.append(
                     Chunk(
                         content=chunk_text,
-                        chunk_id=i,
-                        start_i=None,  # not implemented as text splitter augments the document
-                        end_i=None,
+                        chunk_id=str(i),
+                        start_i=0,  # not implemented as text splitter
+                        # augments the document
+                        end_i=len(chunk_text),
                         content_without_overlap=chunk_text,
                     )
                 )

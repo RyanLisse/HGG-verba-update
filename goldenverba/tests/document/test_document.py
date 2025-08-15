@@ -1,8 +1,16 @@
-from goldenverba.components.document import Document
+import sys
+
+import pytest
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_document_initialization():
     """Test basic document initialization"""
+    from goldenverba.components.document import Document
+
     doc = Document(
         title="Test Doc",
         content="This is a test document.",
@@ -25,8 +33,14 @@ def test_document_initialization():
     assert hasattr(doc, "spacy_doc")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_document_json_serialization():
     """Test document to/from JSON conversion"""
+    from goldenverba.components.document import Document
+
     original_doc = Document(
         title="Test Doc",
         content="Test content",
@@ -53,14 +67,24 @@ def test_document_json_serialization():
     assert restored_doc.metadata == original_doc.metadata
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_create_document_from_file_config():
     """Test document creation from FileConfig"""
     # TODO: Add test
     assert True
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_document_with_large_content():
     """Test document initialization with content larger than batch size"""
+    from goldenverba.components.document import Document
+
     large_content = "Test sentence. " * 50000  # Creates a large string
     doc = Document(content=large_content)
 
@@ -68,16 +92,28 @@ def test_document_with_large_content():
     assert hasattr(doc, "spacy_doc")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_invalid_json_document():
     """Test document creation from invalid JSON"""
+    from goldenverba.components.document import Document
+
     invalid_dict = {"title": "Test"}  # Missing required fields
 
     doc = Document.from_json(invalid_dict, None)
     assert doc is None
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_special_characters_in_content():
     """Test document initialization with special characters in content"""
+    from goldenverba.components.document import Document
+
     content = (
         "This is a test document with special characters: !@#$%^&*()_+-=[]{}|;:,.<>?~ "
     )
@@ -88,8 +124,14 @@ def test_special_characters_in_content():
     assert doc.spacy_doc.sents is not None
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Skipping spacy-dependent tests due to binary compatibility issues on macOS",
+)
 def test_arabic_in_content():
     """Test document initialization with Arabic in content"""
+    from goldenverba.components.document import Document
+
     content = "نص اختبار باللغة العربية"
     doc = Document(content=content)
     assert doc.content == content

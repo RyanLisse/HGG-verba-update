@@ -92,8 +92,13 @@ class VerbaManager:
     # Import
 
     async def import_document(
-        self, client, fileConfig: FileConfig, logger: LoggerManager = LoggerManager()
+        self,
+        client,
+        fileConfig: FileConfig,
+        logger: LoggerManager = None,
     ):
+        if logger is None:
+            logger = LoggerManager()
         try:
             loop = asyncio.get_running_loop()
             start_time = loop.time()
@@ -137,14 +142,20 @@ class VerbaManager:
                 await logger.send_report(
                     fileConfig.fileID,
                     status=FileStatus.INGESTING,
-                    message=f"Imported {fileConfig.filename} and it's {successful_tasks} documents into Weaviate",
+                    message=(
+                        f"Imported {fileConfig.filename} and it's {successful_tasks} "
+                        f"documents into Weaviate"
+                    ),
                     took=round(loop.time() - start_time, 2),
                 )
             elif successful_tasks == 1:
                 await logger.send_report(
                     fileConfig.fileID,
                     status=FileStatus.INGESTING,
-                    message=f"Imported {fileConfig.filename} and {len(documents[0].chunks)} chunks into Weaviate",
+                    message=(
+                        f"Imported {fileConfig.filename} and "
+                        f"{len(documents[0].chunks)} chunks into Weaviate"
+                    ),
                     took=round(loop.time() - start_time, 2),
                 )
             elif (
@@ -153,12 +164,14 @@ class VerbaManager:
                 and isinstance(results[0], Exception)
             ):
                 msg.fail(
-                    f"No documents imported {successful_tasks} of {len(results)} succesful tasks"
+                    f"No documents imported {successful_tasks} of "
+                    f"{len(results)} succesful tasks"
                 )
                 raise results[0]
             else:
                 raise Exception(
-                    f"No documents imported {successful_tasks} of {len(results)} succesful tasks"
+                    f"No documents imported {successful_tasks} of "
+                    f"{len(results)} succesful tasks"
                 )
 
             await logger.send_report(
@@ -255,7 +268,9 @@ class VerbaManager:
             await logger.send_report(
                 currentFileConfig.fileID,
                 status=FileStatus.DONE,
-                message=f"Import for {currentFileConfig.filename} completed successfully",
+                message=(
+                    f"Import for {currentFileConfig.filename} completed successfully"
+                ),
                 took=round(loop.time() - start_time, 2),
             )
         except Exception as e:
@@ -265,12 +280,13 @@ class VerbaManager:
                 message=f"Import for {fileConfig.filename} failed: {e!s}",
                 took=round(loop.time() - start_time, 2),
             )
-            raise Exception(f"Import for {fileConfig.filename} failed: {e!s}")
+            raise Exception(f"Import for {fileConfig.filename} failed: {e!s}") from e
 
     # Configuration
 
     def create_config(self) -> dict:
-        """Creates the RAG Configuration and returns the full Verba Config with also Settings"""
+        """Creates the RAG Configuration and returns the full Verba Config
+        with also Settings"""
 
         available_environments = self.environment_variables
         available_libraries = self.installed_libraries
@@ -298,6 +314,8 @@ class VerbaManager:
         }
 
         embedders = self.embedder_manager.embedders
+        # Prioritize OpenAI for embeddings
+        preferred_embedder = "OpenAI" if "OpenAI" in embedders else list(embedders.values())[0].name
         embedder_config = {
             "components": {
                 embedder: embedders[embedder].get_meta(
@@ -305,7 +323,7 @@ class VerbaManager:
                 )
                 for embedder in embedders
             },
-            "selected": list(embedders.values())[0].name,
+            "selected": preferred_embedder,
         }
 
         retrievers = self.retriever_manager.retrievers
@@ -320,6 +338,8 @@ class VerbaManager:
         }
 
         generators = self.generator_manager.generators
+        # Prioritize OpenAI for generators
+        preferred_generator = "OpenAI" if "OpenAI" in generators else list(generators.values())[0].name
         generator_config = {
             "components": {
                 generator: generators[generator].get_meta(
@@ -327,7 +347,7 @@ class VerbaManager:
                 )
                 for generator in generators
             },
-            "selected": list(generators.values())[0].name,
+            "selected": preferred_generator,
         }
 
         return {
@@ -351,7 +371,8 @@ class VerbaManager:
         await self.weaviate_manager.set_config(client, self.user_config_uuid, config)
 
     async def load_rag_config(self, client):
-        """Check if a Configuration File exists in the database, if yes, check if corrupted. Returns a valid configuration file"""
+        """Check if a Configuration File exists in the database, if yes,
+        check if corrupted. Returns a valid configuration file"""
         loaded_config = await self.weaviate_manager.get_config(
             client, self.rag_config_uuid
         )
@@ -363,7 +384,8 @@ class VerbaManager:
             msg.info("Using New RAG Configuration")
             await self.set_rag_config(client, new_config)
             return new_config
-        msg.info("Using New RAG Configuration")
+        msg.info("Creating and saving new RAG Configuration")
+        await self.set_rag_config(client, new_config)
         return new_config
 
     async def load_theme_config(self, client):
@@ -394,7 +416,8 @@ class VerbaManager:
             for a_component_key, b_component_key in zip(a, b, strict=False):
                 if a_component_key != b_component_key:
                     msg.fail(
-                        f"Config Validation Failed, component name mismatch: {a_component_key} != {b_component_key}"
+                        f"Config Validation Failed, component name mismatch: "
+                        f"{a_component_key} != {b_component_key}"
                     )
                     return False
 
@@ -403,7 +426,8 @@ class VerbaManager:
 
                 if len(a_component) != len(b_component):
                     msg.fail(
-                        f"Config Validation Failed, {a_component_key} component count mismatch: {len(a_component)} != {len(b_component)}"
+                        f"Config Validation Failed, {a_component_key} component count "
+                        f"mismatch: {len(a_component)} != {len(b_component)}"
                     )
                     return False
 
@@ -412,7 +436,8 @@ class VerbaManager:
                 ):
                     if a_rag_component_key != b_rag_component_key:
                         msg.fail(
-                            f"Config Validation Failed, component name mismatch: {a_rag_component_key} != {b_rag_component_key}"
+                            f"Config Validation Failed, component name mismatch: "
+                            f"{a_rag_component_key} != {b_rag_component_key}"
                         )
                         return False
                     a_rag_component = a_component[a_rag_component_key]
@@ -423,14 +448,18 @@ class VerbaManager:
 
                     if len(a_config) != len(b_config):
                         msg.fail(
-                            f"Config Validation Failed, component config count mismatch: {len(a_config)} != {len(b_config)}"
+                            f"Config Validation Failed, component config count "
+                            f"mismatch: {len(a_config)} != {len(b_config)}"
                         )
                         return False
 
-                    for a_config_key, b_config_key in zip(a_config, b_config, strict=False):
+                    for a_config_key, b_config_key in zip(
+                        a_config, b_config, strict=False
+                    ):
                         if a_config_key != b_config_key:
                             msg.fail(
-                                f"Config Validation Failed, component name mismatch: {a_config_key} != {b_config_key}"
+                                f"Config Validation Failed, component name "
+                                f"mismatch: {a_config_key} != {b_config_key}"
                             )
                             return False
 
@@ -439,13 +468,16 @@ class VerbaManager:
 
                         if a_setting["description"] != b_setting["description"]:
                             msg.fail(
-                                f"Config Validation Failed, description mismatch: {a_setting['description']} != {b_setting['description']}"
+                                f"Config Validation Failed, description mismatch: "
+                                f"{a_setting['description']} != "
+                                f"{b_setting['description']}"
                             )
                             return False
 
                         if sorted(a_setting["values"]) != sorted(b_setting["values"]):
                             msg.fail(
-                                f"Config Validation Failed, values mismatch: {a_setting['values']} != {b_setting['values']}"
+                                f"Config Validation Failed, values mismatch: "
+                                f"{a_setting['values']} != {b_setting['values']}"
                             )
                             return False
 
@@ -471,7 +503,9 @@ class VerbaManager:
 
     def verify_installed_libraries(self) -> None:
         """
-        Checks which libraries are installed and fills out the self.installed_libraries dictionary for the frontend to access, this will be displayed in the status page.
+        Checks which libraries are installed and fills out the
+        self.installed_libraries dictionary for the frontend to access,
+        this will be displayed in the status page.
         """
         reader = [
             lib
@@ -511,7 +545,8 @@ class VerbaManager:
 
     def verify_variables(self) -> None:
         """
-        Checks which environment variables are installed and fills out the self.environment_variables dictionary for the frontend to access.
+        Checks which environment variables are installed and fills out the
+        self.environment_variables dictionary for the frontend to access.
         """
         reader = [
             lib
@@ -702,9 +737,13 @@ class VerbaManager:
         client,
         query: str,
         rag_config: dict,
-        labels: list[str] = [],
-        document_uuids: list[str] = [],
+        labels: list[str] | None = None,
+        document_uuids: list[str] | None = None,
     ):
+        if labels is None:
+            labels = []
+        if document_uuids is None:
+            document_uuids = []
         retriever = rag_config["Retriever"].selected
         embedder = rag_config["Embedder"].selected
 
@@ -733,7 +772,6 @@ class VerbaManager:
         context: str,
         conversation: list[dict],
     ):
-
         full_text = ""
         async for result in self.generator_manager.generate_stream(
             rag_config, query, context, conversation
@@ -766,7 +804,6 @@ class ClientManager:
     async def connect(
         self, credentials: Credentials, port: str = "8080"
     ) -> WeaviateAsyncClient:
-
         _credentials = credentials
 
         if not _credentials.url and not _credentials.key:
@@ -795,7 +832,7 @@ class ClientManager:
 
     async def disconnect(self):
         msg.warn("Disconnecting Clients!")
-        for cred_hash, client in self.clients.items():
+        for _cred_hash, client in self.clients.items():
             await self.manager.disconnect(client["client"])
 
     async def clean_up(self):

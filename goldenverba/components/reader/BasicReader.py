@@ -95,46 +95,46 @@ class BasicReader(Reader):
         if self.nlp:
             self.nlp.add_pipe("sentencizer", config={"punct_chars": None})
 
-    async def load(self, config: dict, fileConfig: FileConfig) -> list[Document]:
+    async def load(self, config: dict, file_config: FileConfig) -> list[Document]:
         """
         Load and process a file based on its extension.
         """
-        msg.info(f"Loading {fileConfig.filename} ({fileConfig.extension.lower()})")
+        msg.info(f"Loading {file_config.filename} ({file_config.extension.lower()})")
 
-        if fileConfig.extension != "":
-            decoded_bytes = base64.b64decode(fileConfig.content)
+        if file_config.extension != "":
+            decoded_bytes = base64.b64decode(file_config.content)
 
         try:
-            if fileConfig.extension == "":
-                file_content = fileConfig.content
-            elif fileConfig.extension.lower() == "json":
-                return await self.load_json_file(decoded_bytes, fileConfig)
-            elif fileConfig.extension.lower() == "pdf":
+            if file_config.extension == "":
+                file_content = file_config.content
+            elif file_config.extension.lower() == "json":
+                return await self.load_json_file(decoded_bytes, file_config)
+            elif file_config.extension.lower() == "pdf":
                 file_content = await self.load_pdf_file(decoded_bytes)
-            elif fileConfig.extension.lower() == "docx":
+            elif file_config.extension.lower() == "docx":
                 file_content = await self.load_docx_file(decoded_bytes)
-            elif fileConfig.extension.lower() == "csv":
+            elif file_config.extension.lower() == "csv":
                 file_content = await self.load_csv_file(decoded_bytes)
-            elif fileConfig.extension.lower() in ["xlsx", "xls"]:
+            elif file_config.extension.lower() in ["xlsx", "xls"]:
                 file_content = await self.load_excel_file(
-                    decoded_bytes, fileConfig.extension.lower()
+                    decoded_bytes, file_config.extension.lower()
                 )
-            elif fileConfig.extension.lower() in [
+            elif file_config.extension.lower() in [
                 ext.lstrip(".") for ext in self.extension
             ]:
                 file_content = await self.load_text_file(decoded_bytes)
             else:
                 try:
                     file_content = await self.load_text_file(decoded_bytes)
-                except Exception:
+                except Exception as err:
                     raise ValueError(
-                        f"Unsupported file extension: {fileConfig.extension}"
-                    )
+                        f"Unsupported file extension: {file_config.extension}"
+                    ) from err
 
-            return [create_document(file_content, fileConfig)]
+            return [create_document(file_content, file_config)]
         except Exception as e:
-            msg.fail(f"Failed to load {fileConfig.filename}: {e!s}")
-            raise
+            msg.fail(f"Failed to load {file_config.filename}: {e!s}")
+            raise e from None
 
     async def load_text_file(self, decoded_bytes: bytes) -> str:
         """Load and decode a text file."""
@@ -145,7 +145,7 @@ class BasicReader(Reader):
             return decoded_bytes.decode("latin-1")
 
     async def load_json_file(
-        self, decoded_bytes: bytes, fileConfig: FileConfig
+        self, decoded_bytes: bytes, file_config: FileConfig
     ) -> list[Document]:
         """Load and parse a JSON file."""
         try:
@@ -154,10 +154,10 @@ class BasicReader(Reader):
             return (
                 [document]
                 if document
-                else [create_document(json.dumps(json_obj, indent=2), fileConfig)]
+                else [create_document(json.dumps(json_obj, indent=2), file_config)]
             )
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {fileConfig.filename}: {e!s}")
+            raise ValueError(f"Invalid JSON in {file_config.filename}: {e!s}") from e
 
     async def load_pdf_file(self, decoded_bytes: bytes) -> str:
         """Load and extract text from a PDF file."""
@@ -215,7 +215,7 @@ class BasicReader(Reader):
             return "\n".join(result)
 
         except Exception as e:
-            raise ValueError(f"Error reading CSV file: {e!s}")
+            raise ValueError(f"Error reading CSV file: {e!s}") from e
 
     async def load_excel_file(self, decoded_bytes: bytes, extension: str) -> str:
         """Load and convert Excel file to readable text format."""
@@ -243,11 +243,11 @@ class BasicReader(Reader):
                             sheets_dict = pd.read_excel(
                                 excel_bytes, sheet_name=None, engine=None
                             )
-                        except Exception:
+                        except Exception as fallback_error:
                             raise ImportError(
-                                f"Cannot read .xls file. Please install 'xlrd' for .xls support: pip install xlrd. "
+                                f"Cannot read .xls file. Please install 'xlrd' for .xls support. "
                                 f"Original error: {e!s}"
-                            )
+                            ) from fallback_error
 
                 result = []
 
@@ -279,7 +279,8 @@ class BasicReader(Reader):
             # Fallback to openpyxl for basic reading
             if extension != "xlsx":
                 raise ImportError(
-                    "openpyxl only supports .xlsx files. Please install pandas for .xls support."
+                    "openpyxl only supports .xlsx files. "
+                    "Please install pandas for .xls support."
                 )
 
             from openpyxl import load_workbook
@@ -311,7 +312,9 @@ class BasicReader(Reader):
 
                 for i, row in enumerate(rows_data[1:], 1):
                     if len(row) == len(headers):
-                        row_data = [f"{h}: {v}" for h, v in zip(headers, row, strict=False)]
+                        row_data = [
+                            f"{h}: {v}" for h, v in zip(headers, row, strict=False)
+                        ]
                         result.append(f"Row {i}: {' | '.join(row_data)}")
                         result.append(" \n\n")
                     else:
@@ -321,4 +324,4 @@ class BasicReader(Reader):
             return "\n".join(result)
 
         except Exception as e:
-            raise ValueError(f"Error reading Excel file: {e!s}")
+            raise ValueError(f"Error reading Excel file: {e!s}") from e

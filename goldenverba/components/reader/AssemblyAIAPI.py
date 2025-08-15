@@ -16,7 +16,8 @@ from goldenverba.server.types import FileConfig
 
 class AssemblyAIReader(Reader):
     """
-    AssemblyAI API Reader for importing multiple file types using the AssemblyAI.com API.
+    AssemblyAI API Reader for importing multiple file types using the
+    AssemblyAI.com API.
     """
 
     def __init__(self):
@@ -64,7 +65,10 @@ class AssemblyAIReader(Reader):
         ]
         self.requires_env = ["ASSEMBLYAI_API_KEY"]
         self.name = "AssemblyAI"
-        self.description = "Uses the AssemblyAI API to import multiple file types such as plain text and documents"
+        self.description = (
+            "Uses the AssemblyAI API to import multiple file types such as "
+            "plain text and documents"
+        )
         self.config = {
             "Quality": InputConfig(
                 type="dropdown",
@@ -78,7 +82,10 @@ class AssemblyAIReader(Reader):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="Set your AssemblyAI API Key here or set it as an environment variable `ASSEMBLYAI_API_KEY`",
+                description=(
+                    "Set your AssemblyAI API Key here or set it as an environment "
+                    "variable `ASSEMBLYAI_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -121,17 +128,19 @@ class AssemblyAIReader(Reader):
             transcript = transcriber.transcribe(file_bytes)
             if transcript.error:
                 raise Exception(
-                    f"AssemblyAI API failed to transcribe {fileConfig.filename}: {transcript.error}"
+                    f"AssemblyAI API failed to transcribe {fileConfig.filename}: "
+                    f"{transcript.error}"
                 )
             if transcript.text is None:
                 raise Exception(
-                    f"AssemblyAI API failed to transcribe {fileConfig.filename}, no text returned"
+                    f"AssemblyAI API failed to transcribe {fileConfig.filename}, "
+                    f"no text returned"
                 )
             return [create_document(transcript.text, fileConfig)]
 
         except requests.RequestException as e:
             raise Exception(
                 f"AssemblyAI API request failed for {fileConfig.filename}: {e!s}"
-            )
+            ) from e
         except Exception as e:
-            raise Exception(f"Failed to process {fileConfig.filename}: {e!s}")
+            raise Exception(f"Failed to process {fileConfig.filename}: {e!s}") from e

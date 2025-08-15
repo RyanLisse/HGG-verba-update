@@ -1,8 +1,8 @@
 export type Credentials = {
-  deployment: "Weaviate" | "Docker" | "Local" | "Custom";
+  deployment: 'Weaviate' | 'Docker' | 'Local' | 'Custom';
   url: string;
   key: string;
-  default_deployment: "Weaviate" | "Docker" | "Local" | "Custom" | "";
+  default_deployment: 'Weaviate' | 'Docker' | 'Local' | 'Custom' | '';
 };
 
 export type DocumentFilter = {
@@ -26,7 +26,7 @@ export type ConnectPayload = {
 export type StatusMessage = {
   message: string;
   timestamp: string;
-  type: "INFO" | "WARNING" | "SUCCESS" | "ERROR";
+  type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
 };
 
 export type Suggestion = {
@@ -54,13 +54,13 @@ export type StatusPayload = {
 
 export type HealthPayload = {
   message: string;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   gtag: string;
   deployments: {
     WEAVIATE_URL_VERBA: string;
     WEAVIATE_API_KEY_VERBA: string;
   };
-  default_deployment: "Weaviate" | "Docker" | "Local" | "Custom" | "";
+  default_deployment: 'Weaviate' | 'Docker' | 'Local' | 'Custom' | '';
 };
 
 export type QueryPayload = {
@@ -119,7 +119,7 @@ export type ImportResponse = {
 };
 
 export type ConsoleMessage = {
-  type: "INFO" | "WARNING" | "SUCCESS" | "ERROR";
+  type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR';
   message: string;
 };
 
@@ -172,18 +172,18 @@ export type FileData = {
   block?: boolean;
   status_report: StatusReportMap;
   status:
-    | "READY"
-    | "STARTING"
-    | "LOADING"
-    | "CHUNKING"
-    | "EMBEDDING"
-    | "INGESTING"
-    | "NER"
-    | "EXTRACTION"
-    | "SUMMARIZING"
-    | "WAITING"
-    | "DONE"
-    | "ERROR";
+    | 'READY'
+    | 'STARTING'
+    | 'LOADING'
+    | 'CHUNKING'
+    | 'EMBEDDING'
+    | 'INGESTING'
+    | 'NER'
+    | 'EXTRACTION'
+    | 'SUMMARIZING'
+    | 'WAITING'
+    | 'DONE'
+    | 'ERROR';
   rag_config: RAGConfig;
 };
 
@@ -194,18 +194,18 @@ export type StatusReportMap = {
 export type StatusReport = {
   fileID: string;
   status:
-    | "READY"
-    | "STARTING"
-    | "LOADING"
-    | "CHUNKING"
-    | "EMBEDDING"
-    | "INGESTING"
-    | "NER"
-    | "EXTRACTION"
-    | "SUMMARIZING"
-    | "DONE"
-    | "WAITING"
-    | "ERROR";
+    | 'READY'
+    | 'STARTING'
+    | 'LOADING'
+    | 'CHUNKING'
+    | 'EMBEDDING'
+    | 'INGESTING'
+    | 'NER'
+    | 'EXTRACTION'
+    | 'SUMMARIZING'
+    | 'DONE'
+    | 'WAITING'
+    | 'ERROR';
   message: string;
   took: number;
 };
@@ -217,33 +217,33 @@ export type CreateNewDocument = {
 };
 
 export const statusColorMap = {
-  DONE: "bg-secondary-verba",
-  ERROR: "bg-warning-verba",
-  READY: "bg-button-verba",
-  STARTING: "bg-button-verba",
-  CHUNKING: "bg-button-verba",
-  LOADING: "bg-button-verba",
-  EMBEDDING: "bg-button-verba",
-  INGESTING: "bg-button-verba",
-  NER: "bg-button-verba",
-  EXTRACTION: "bg-button-verba",
-  SUMMARIZING: "bg-button-verba",
-  WAITING: "bg-button-verba",
+  DONE: 'bg-secondary-verba',
+  ERROR: 'bg-warning-verba',
+  READY: 'bg-button-verba',
+  STARTING: 'bg-button-verba',
+  CHUNKING: 'bg-button-verba',
+  LOADING: 'bg-button-verba',
+  EMBEDDING: 'bg-button-verba',
+  INGESTING: 'bg-button-verba',
+  NER: 'bg-button-verba',
+  EXTRACTION: 'bg-button-verba',
+  SUMMARIZING: 'bg-button-verba',
+  WAITING: 'bg-button-verba',
 };
 
 export const statusTextMap = {
-  DONE: "Finished",
-  ERROR: "Failed",
-  READY: "Ready",
-  STARTING: "Importing...",
-  CHUNKING: "Chunking...",
-  LOADING: "Loading...",
-  EMBEDDING: "Embedding...",
-  INGESTING: "Weaviating...",
-  NER: "Extracting NER...",
-  EXTRACTION: "Extraction REL...",
-  SUMMARIZING: "Summarizing...",
-  WAITING: "Uploading...",
+  DONE: 'Finished',
+  ERROR: 'Failed',
+  READY: 'Ready',
+  STARTING: 'Importing...',
+  CHUNKING: 'Chunking...',
+  LOADING: 'Loading...',
+  EMBEDDING: 'Embedding...',
+  INGESTING: 'Weaviating...',
+  NER: 'Extracting NER...',
+  EXTRACTION: 'Extraction REL...',
+  SUMMARIZING: 'Summarizing...',
+  WAITING: 'Uploading...',
 };
 
 export type FileMap = {
@@ -320,7 +320,7 @@ export type ContentSnippet = {
   content: string;
   chunk_id: number;
   score: number;
-  type: "text" | "extract";
+  type: 'text' | 'extract';
 };
 
 export type VectorsPayload = {
@@ -393,73 +393,73 @@ export type DataCountPayload = {
 };
 
 export type Segment =
-  | { type: "text"; content: string }
-  | { type: "code"; language: string; content: string };
+  | { type: 'text'; content: string }
+  | { type: 'code'; language: string; content: string };
 
-export interface Message {
-  type: "user" | "system" | "error" | "retrieval";
+export type Message = {
+  type: 'user' | 'system' | 'error' | 'retrieval';
   content: string | DocumentScore[];
   cached?: boolean;
   distance?: string;
   context?: string;
-}
+};
 
 // Setting Fields
 
-export interface TextFieldSetting {
-  type: "text";
+export type TextFieldSetting = {
+  type: 'text';
   text: string;
   description: string;
-}
+};
 
-export interface NumberFieldSetting {
-  type: "number";
+export type NumberFieldSetting = {
+  type: 'number';
   value: number;
   description: string;
-}
+};
 
-export interface ImageFieldSetting {
-  type: "image";
+export type ImageFieldSetting = {
+  type: 'image';
   src: string;
   description: string;
-}
+};
 
-export interface CheckboxSetting {
-  type: "check";
+export type CheckboxSetting = {
+  type: 'check';
   checked: boolean;
   description: string;
-}
+};
 
-export interface ColorSetting {
-  type: "color";
+export type ColorSetting = {
+  type: 'color';
   color: string;
   description: string;
-}
+};
 
-export interface SelectSetting {
-  type: "select";
+export type SelectSetting = {
+  type: 'select';
   options: string[];
   value: string;
   description: string;
-}
+};
 
 // Base Settings
 
 const AvailableFonts: string[] = [
-  "Inter",
-  "Plus_Jakarta_Sans",
-  "Open_Sans",
-  "PT_Mono",
+  'Inter',
+  'Plus_Jakarta_Sans',
+  'Open_Sans',
+  'PT_Mono',
 ];
 
 const BaseFonts: SelectSetting = {
-  value: "Plus_Jakarta_Sans",
-  type: "select",
+  value: 'Plus_Jakarta_Sans',
+  type: 'select',
   options: AvailableFonts,
-  description: "Text Font",
+  description: 'Text Font',
 };
 
-export interface Theme {
+export type Theme = {
   theme_name: string;
   title: TextFieldSetting;
   subtitle: TextFieldSetting;
@@ -477,175 +477,175 @@ export interface Theme {
   button_color: ColorSetting;
   button_hover_color: ColorSetting;
   font: SelectSetting;
-  theme: "light" | "dark";
-}
+  theme: 'light' | 'dark';
+};
 
 export const LightTheme: Theme = {
-  theme_name: "Light",
-  title: { text: "Verba", type: "text", description: "Title" },
+  theme_name: 'Light',
+  title: { text: 'Verba', type: 'text', description: 'Title' },
   subtitle: {
-    text: "The Golden RAGtriever",
-    type: "text",
-    description: "Subtitle",
+    text: 'The Golden RAGtriever',
+    type: 'text',
+    description: 'Subtitle',
   },
   intro_message: {
-    text: "Welcome to Verba, your open-source RAG application!",
-    type: "text",
-    description: "First Message",
+    text: 'Welcome to Verba, your open-source RAG application!',
+    type: 'text',
+    description: 'First Message',
   },
   image: {
-    src: "https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true",
-    type: "image",
-    description: "Logo",
+    src: 'https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true',
+    type: 'image',
+    description: 'Logo',
   },
   primary_color: {
-    color: "#FDFF91",
-    type: "color",
-    description: "Primary",
+    color: '#FDFF91',
+    type: 'color',
+    description: 'Primary',
   },
   secondary_color: {
-    color: "#90FFA8",
-    type: "color",
-    description: "Secondary",
+    color: '#90FFA8',
+    type: 'color',
+    description: 'Secondary',
   },
   warning_color: {
-    color: "#FF8399",
-    type: "color",
-    description: "Warning",
+    color: '#FF8399',
+    type: 'color',
+    description: 'Warning',
   },
   bg_color: {
-    color: "#FEF7F7",
-    type: "color",
-    description: "Background",
+    color: '#FEF7F7',
+    type: 'color',
+    description: 'Background',
   },
   bg_alt_color: {
-    color: "#FFFFFF",
-    type: "color",
-    description: "Alt. Background",
+    color: '#FFFFFF',
+    type: 'color',
+    description: 'Alt. Background',
   },
-  text_color: { color: "#161616", type: "color", description: "Text" },
+  text_color: { color: '#161616', type: 'color', description: 'Text' },
   text_alt_color: {
-    color: "#8E8E8E",
-    type: "color",
-    description: "Alt. Text",
+    color: '#8E8E8E',
+    type: 'color',
+    description: 'Alt. Text',
   },
   button_text_color: {
-    color: "#161616",
-    type: "color",
-    description: "Button Text",
+    color: '#161616',
+    type: 'color',
+    description: 'Button Text',
   },
   button_text_alt_color: {
-    color: "#8E8E8E",
-    type: "color",
-    description: "Button Alt. Text",
+    color: '#8E8E8E',
+    type: 'color',
+    description: 'Button Alt. Text',
   },
   button_color: {
-    color: "#EFEFEF",
-    type: "color",
-    description: "Button",
+    color: '#EFEFEF',
+    type: 'color',
+    description: 'Button',
   },
   button_hover_color: {
-    color: "#DCDCDC",
-    type: "color",
-    description: "Button Hover",
+    color: '#DCDCDC',
+    type: 'color',
+    description: 'Button Hover',
   },
   font: BaseFonts,
-  theme: "light",
+  theme: 'light',
 };
 
 export const DarkTheme: Theme = {
   ...LightTheme,
-  theme_name: "Dark",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "The Dark RAGtriever" },
+  theme_name: 'Dark',
+  title: { ...LightTheme.title, text: 'Verba' },
+  subtitle: { ...LightTheme.subtitle, text: 'The Dark RAGtriever' },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: 'Welcome to Verba, your open-source RAG application!',
   },
   image: {
     ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true",
+    src: 'https://github.com/weaviate/Verba/blob/main/img/verba_icon.png?raw=true',
   },
-  primary_color: { ...LightTheme.primary_color, color: "#BB86FC" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#008F82" },
-  warning_color: { ...LightTheme.warning_color, color: "#FF8399" },
-  bg_color: { ...LightTheme.bg_color, color: "#202020" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#2F2929" },
-  text_color: { ...LightTheme.text_color, color: "#ffffff" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#999999" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#ffffff" },
+  primary_color: { ...LightTheme.primary_color, color: '#BB86FC' },
+  secondary_color: { ...LightTheme.secondary_color, color: '#008F82' },
+  warning_color: { ...LightTheme.warning_color, color: '#FF8399' },
+  bg_color: { ...LightTheme.bg_color, color: '#202020' },
+  bg_alt_color: { ...LightTheme.bg_alt_color, color: '#2F2929' },
+  text_color: { ...LightTheme.text_color, color: '#ffffff' },
+  text_alt_color: { ...LightTheme.text_alt_color, color: '#999999' },
+  button_text_color: { ...LightTheme.button_text_color, color: '#ffffff' },
   button_text_alt_color: {
     ...LightTheme.button_text_alt_color,
-    color: "#999999",
+    color: '#999999',
   },
-  button_color: { ...LightTheme.button_color, color: "#3C3C3C" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#2C2C2C" },
-  font: { ...LightTheme.font, value: "Open_Sans" },
-  theme: "dark",
+  button_color: { ...LightTheme.button_color, color: '#3C3C3C' },
+  button_hover_color: { ...LightTheme.button_hover_color, color: '#2C2C2C' },
+  font: { ...LightTheme.font, value: 'Open_Sans' },
+  theme: 'dark',
 };
 
 export const WCDTheme: Theme = {
   ...LightTheme,
-  theme_name: "WCD",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
+  theme_name: 'WCD',
+  title: { ...LightTheme.title, text: 'Verba' },
+  subtitle: { ...LightTheme.subtitle, text: 'Weaviate Chatbot' },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: 'Welcome to Verba, your open-source RAG application!',
   },
   image: {
     ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true",
+    src: 'https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true',
   },
-  primary_color: { ...LightTheme.primary_color, color: "#BF40C5" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#28395B" },
-  warning_color: { ...LightTheme.warning_color, color: "#EA3A31" },
-  bg_color: { ...LightTheme.bg_color, color: "#0C1428" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#192136" },
-  text_color: { ...LightTheme.text_color, color: "#ffffff" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#AAAAAA" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#ffffff" },
+  primary_color: { ...LightTheme.primary_color, color: '#BF40C5' },
+  secondary_color: { ...LightTheme.secondary_color, color: '#28395B' },
+  warning_color: { ...LightTheme.warning_color, color: '#EA3A31' },
+  bg_color: { ...LightTheme.bg_color, color: '#0C1428' },
+  bg_alt_color: { ...LightTheme.bg_alt_color, color: '#192136' },
+  text_color: { ...LightTheme.text_color, color: '#ffffff' },
+  text_alt_color: { ...LightTheme.text_alt_color, color: '#AAAAAA' },
+  button_text_color: { ...LightTheme.button_text_color, color: '#ffffff' },
   button_text_alt_color: {
     ...LightTheme.button_text_alt_color,
-    color: "#AAAAAA",
+    color: '#AAAAAA',
   },
-  button_color: { ...LightTheme.button_color, color: "#1D253A" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#313749" },
-  font: { ...LightTheme.font, value: "Open_Sans" },
-  theme: "dark",
+  button_color: { ...LightTheme.button_color, color: '#1D253A' },
+  button_hover_color: { ...LightTheme.button_hover_color, color: '#313749' },
+  font: { ...LightTheme.font, value: 'Open_Sans' },
+  theme: 'dark',
 };
 
 export const WeaviateTheme: Theme = {
   ...LightTheme,
-  theme_name: "Weaviate",
-  title: { ...LightTheme.title, text: "Verba" },
-  subtitle: { ...LightTheme.subtitle, text: "Weaviate Chatbot" },
+  theme_name: 'Weaviate',
+  title: { ...LightTheme.title, text: 'Verba' },
+  subtitle: { ...LightTheme.subtitle, text: 'Weaviate Chatbot' },
   intro_message: {
     ...LightTheme.intro_message,
-    text: "Welcome to Verba, your open-source RAG application!",
+    text: 'Welcome to Verba, your open-source RAG application!',
   },
   image: {
     ...LightTheme.image,
-    src: "https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true",
+    src: 'https://github.com/weaviate/Verba/blob/1.0.0/frontend/public/weaviate.png?raw=true',
   },
-  primary_color: { ...LightTheme.primary_color, color: "#9bfc88" },
-  secondary_color: { ...LightTheme.secondary_color, color: "#8bffe7" },
-  warning_color: { ...LightTheme.warning_color, color: "#f77579" },
-  bg_color: { ...LightTheme.bg_color, color: "#FEF7F7" },
-  bg_alt_color: { ...LightTheme.bg_alt_color, color: "#ffffff" },
-  text_color: { ...LightTheme.text_color, color: "#130C49" },
-  text_alt_color: { ...LightTheme.text_alt_color, color: "#929292" },
-  button_text_color: { ...LightTheme.button_text_color, color: "#130C49" },
+  primary_color: { ...LightTheme.primary_color, color: '#9bfc88' },
+  secondary_color: { ...LightTheme.secondary_color, color: '#8bffe7' },
+  warning_color: { ...LightTheme.warning_color, color: '#f77579' },
+  bg_color: { ...LightTheme.bg_color, color: '#FEF7F7' },
+  bg_alt_color: { ...LightTheme.bg_alt_color, color: '#ffffff' },
+  text_color: { ...LightTheme.text_color, color: '#130C49' },
+  text_alt_color: { ...LightTheme.text_alt_color, color: '#929292' },
+  button_text_color: { ...LightTheme.button_text_color, color: '#130C49' },
   button_text_alt_color: {
     ...LightTheme.button_text_alt_color,
-    color: "#929292",
+    color: '#929292',
   },
-  button_color: { ...LightTheme.button_color, color: "#eeeeee" },
-  button_hover_color: { ...LightTheme.button_hover_color, color: "#7dfffb" },
-  font: { ...LightTheme.font, value: "Plus_Jakarta_Sans" },
-  theme: "light",
+  button_color: { ...LightTheme.button_color, color: '#eeeeee' },
+  button_hover_color: { ...LightTheme.button_hover_color, color: '#7dfffb' },
+  font: { ...LightTheme.font, value: 'Plus_Jakarta_Sans' },
+  theme: 'light',
 };
 
-export interface Themes {
+export type Themes = {
   [key: string]: Theme;
-}
+};

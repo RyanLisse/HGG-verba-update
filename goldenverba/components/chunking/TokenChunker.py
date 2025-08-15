@@ -37,12 +37,10 @@ class TokenChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Tokens"].value)
         overlap = int(config["Overlap"].value)
 
         for document in documents:
-
             doc = document.spacy_doc
 
             # Skip if document already contains chunks
@@ -54,7 +52,7 @@ class TokenChunker(Chunker):
                 document.chunks.append(
                     Chunk(
                         content=document.content,
-                        chunk_id=0,
+                        chunk_id="0",
                         start_i=0,
                         end_i=len(document.content),
                         content_without_overlap=document.content,
@@ -64,7 +62,9 @@ class TokenChunker(Chunker):
 
             if overlap >= units:
                 msg.warn(
-                    f"Overlap value is greater than unit (Units {config['Tokens'].value}/ Overlap {config['Overlap'].value})"
+                    f"Overlap value is greater than unit "
+                    f"(Units {config['Tokens'].value}/ "
+                    f"Overlap {config['Overlap'].value})"
                 )
                 overlap = units - 1
 
@@ -73,23 +73,17 @@ class TokenChunker(Chunker):
             while i < len(doc):
                 start_i = i
                 end_i = min(i + units + overlap, len(doc))
-                if end_i == len(doc):
-                    overlap_start = end_i
-                else:
-                    overlap_start = min(i + units, end_i)
+                overlap_start = end_i if end_i == len(doc) else min(i + units, end_i)
 
                 chunk_text = doc[start_i:end_i].text
                 chunk_text_without_overlap = doc[start_i:overlap_start].text
 
                 # char_start_i = doc[start_i].idx
-                if end_i == len(doc):
-                    char_end_i = doc[-1].idx + 1
-                else:
-                    char_end_i = doc[end_i].idx
+                char_end_i = doc[-1].idx + 1 if end_i == len(doc) else doc[end_i].idx
 
                 doc_chunk = Chunk(
                     content=chunk_text,
-                    chunk_id=split_id_counter,
+                    chunk_id=str(split_id_counter),
                     start_i=doc[start_i].idx,
                     end_i=char_end_i,
                     content_without_overlap=chunk_text_without_overlap,

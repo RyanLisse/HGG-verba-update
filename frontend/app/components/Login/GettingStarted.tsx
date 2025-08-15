@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import React, { useEffect, useRef, useState } from "react";
-import VerbaButton from "../Navigation/VerbaButton";
-import { FaGithub } from "react-icons/fa";
-import { FaYoutube } from "react-icons/fa";
-import { IoDocumentTextSharp } from "react-icons/io5";
-import { FaHeart } from "react-icons/fa";
+import Image from 'next/image';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { FaGithub, FaHeart, FaYoutube } from 'react-icons/fa';
+import { IoDocumentTextSharp } from 'react-icons/io5';
+import VerbaButton from '../Navigation/VerbaButton';
 
-interface GettingStartedComponentProps {
+type GettingStartedComponentProps = {
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const GettingStartedComponent: React.FC<GettingStartedComponentProps> = ({
   addStatusMessage,
@@ -22,10 +22,10 @@ const GettingStartedComponent: React.FC<GettingStartedComponentProps> = ({
 
   useEffect(() => {
     // Check if getting_started variable exists in localStorage
-    const gettingStartedSeen = localStorage.getItem("getting_started");
+    const gettingStartedSeen = localStorage.getItem('getting_started');
 
     // Show modal if getting_started doesn't exist or is set to false
-    if (!gettingStartedSeen || gettingStartedSeen === "false") {
+    if (!gettingStartedSeen || gettingStartedSeen === 'false') {
       setShouldShow(true);
       if (dialogRef.current) {
         dialogRef.current.showModal();
@@ -40,21 +40,21 @@ const GettingStartedComponent: React.FC<GettingStartedComponentProps> = ({
 
   const handleGetStarted = () => {
     // Set getting_started to true in localStorage
-    localStorage.setItem("getting_started", "true");
+    localStorage.setItem('getting_started', 'true');
     setShouldShow(false);
-    addStatusMessage("Achievement unlocked: Welcome to Verba!", "SUCCESS");
+    addStatusMessage('Achievement unlocked: Welcome to Verba!', 'SUCCESS');
   };
 
   return (
-    <dialog id={"Getting-Started-Modal"} className="modal" ref={dialogRef}>
+    <dialog className="modal" id={'Getting-Started-Modal'} ref={dialogRef}>
       <div className="modal-box w-11/12 max-w-5xl">
         <div className="hero">
           <div className="hero-content flex-row">
             <div className="text-center lg:text-left">
-              <h1 className="text-2xl md:text-5xl font-bold">
+              <h1 className="font-bold text-2xl md:text-5xl">
                 Welcome to Verba
               </h1>
-              <h2 className="text-lg md:text-2xl mt-2">
+              <h2 className="mt-2 text-lg md:text-2xl">
                 Your Open Source RAG App
               </h2>
               <p className="py-6 text-sm md:text-base">
@@ -71,42 +71,43 @@ const GettingStartedComponent: React.FC<GettingStartedComponentProps> = ({
                 you have any questions or find issues, please reach out to us on
                 GitHub.
               </p>
-              <div className="flex flex-col md:flex-row gap-2">
+              <div className="flex flex-col gap-2 md:flex-row">
                 <VerbaButton
-                  title="GitHub"
                   Icon={FaGithub}
                   onClick={() =>
-                    window.open("https://github.com/weaviate/verba", "_blank")
+                    window.open('https://github.com/weaviate/verba', '_blank')
                   }
+                  title="GitHub"
                 />
                 <VerbaButton
-                  title="YouTube"
                   Icon={FaYoutube}
                   onClick={() =>
                     window.open(
-                      "https://www.youtube.com/watch?v=swKKRdLBhas",
-                      "_blank"
+                      'https://www.youtube.com/watch?v=swKKRdLBhas',
+                      '_blank'
                     )
                   }
+                  title="YouTube"
                 />
                 <VerbaButton
-                  title="Blog Post"
                   Icon={IoDocumentTextSharp}
                   onClick={() =>
                     window.open(
-                      "https://weaviate.io/blog/verba-open-source-rag-app",
-                      "_blank"
+                      'https://weaviate.io/blog/verba-open-source-rag-app',
+                      '_blank'
                     )
                   }
+                  title="Blog Post"
                 />
               </div>
             </div>
-            <div className="hidden md:block shrink-0">
-              <img
-                src="https://raw.githubusercontent.com/weaviate/Verba/main/img/thumbnail.png"
+            <div className="hidden shrink-0 md:block">
+              <Image
                 alt="Verba AI"
-                width={400}
                 className="rounded-lg shadow-2xl"
+                height={300}
+                src="https://raw.githubusercontent.com/weaviate/Verba/main/img/thumbnail.png"
+                width={400}
               />
             </div>
           </div>
@@ -114,12 +115,12 @@ const GettingStartedComponent: React.FC<GettingStartedComponentProps> = ({
         <div className="modal-action mt-6 justify-center md:justify-end">
           <form method="dialog">
             <VerbaButton
+              Icon={FaHeart}
+              onClick={handleGetStarted}
+              selected={true}
+              selected_color="bg-primary-verba"
               title="Let's get started"
               type="submit"
-              selected={true}
-              onClick={handleGetStarted}
-              selected_color="bg-primary-verba"
-              Icon={FaHeart}
             />
           </form>
         </div>

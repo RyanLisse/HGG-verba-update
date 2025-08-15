@@ -1,7 +1,8 @@
 import json
 
-import spacy
-from langdetect import detect
+# Lazy-load spaCy to reduce initial memory footprint
+# import spacy  # moved into load_nlp_for_language
+from langdetect import LangDetectException, detect
 from spacy.tokens import Doc
 
 from goldenverba.components.chunk import Chunk
@@ -9,7 +10,8 @@ from goldenverba.server.types import FileConfig
 
 
 def load_nlp_for_language(language: str):
-    """Load SpaCy models based on language"""
+    """Load SpaCy models based on language (lazy import)."""
+    import spacy  # lazy-load
     if language == "en":
         nlp = spacy.blank("en")
     elif language == "zh":
@@ -39,7 +41,7 @@ def detect_language(text: str) -> str:
         if detected_lang == "zh-tw" or detected_lang == "zh-hk":
             return "zh-hant"
         return detected_lang
-    except:
+    except LangDetectException:
         return "unknown"
 
 
@@ -50,18 +52,18 @@ class Document:
         content: str = "",
         extension: str = "",
         fileSize: int = 0,
-        labels: list[str] = [],
+        labels: list[str] | None = None,
         source: str = "",
-        meta: dict = {},
+        meta: dict | None = None,
         metadata: str = "",
     ):
         self.title = title
         self.content = content
         self.extension = extension
         self.fileSize = fileSize
-        self.labels = labels
+        self.labels = labels if labels is not None else []
         self.source = source
-        self.meta = meta
+        self.meta = meta if meta is not None else {}
         self.metadata = metadata
         self.chunks: list[Chunk] = []
 

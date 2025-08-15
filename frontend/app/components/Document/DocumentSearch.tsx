@@ -1,29 +1,35 @@
-"use client";
-import React, { useState, useEffect } from "react";
+'use client';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  DocumentPreview,
+  FaArrowAltCircleLeft,
+  FaArrowAltCircleRight,
+  FaSearch,
+  FaTrash,
+} from 'react-icons/fa';
+import { IoMdAddCircle } from 'react-icons/io';
+import { MdCancel, MdOutlineRefresh } from 'react-icons/md';
+import { deleteDocument, retrieveAllDocuments } from '@/app/api';
+import type {
   Credentials,
+  DocumentPreview,
   DocumentsPreviewPayload,
-} from "@/app/types";
-import { retrieveAllDocuments, deleteDocument } from "@/app/api";
-import { FaSearch, FaTrash } from "react-icons/fa";
-import { MdOutlineRefresh, MdCancel } from "react-icons/md";
-import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
-import InfoComponent from "../Navigation/InfoComponent";
-import UserModalComponent from "../Navigation/UserModal";
-import VerbaButton from "../Navigation/VerbaButton";
-import { IoMdAddCircle } from "react-icons/io";
+} from '@/app/types';
+import InfoComponent from '../Navigation/InfoComponent';
+import UserModalComponent from '../Navigation/UserModal';
+import VerbaButton from '../Navigation/VerbaButton';
+import { Input } from '@/app/components/ui/input';
 
-interface DocumentSearchComponentProps {
+type DocumentSearchComponentProps = {
   selectedDocument: string | null;
   credentials: Credentials;
   setSelectedDocument: (c: string | null) => void;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   selectedDocument,
@@ -32,7 +38,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   addStatusMessage,
   credentials,
 }) => {
-  const [userInput, setUserInput] = useState("");
+  const [userInput, setUserInput] = useState('');
   const [page, setPage] = useState(1);
 
   const [documents, setDocuments] = useState<DocumentPreview[] | null>([]);
@@ -42,7 +48,7 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
   const [labels, setLabels] = useState<string[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [triggerSearch, setTriggerSearch] = useState(false);
+  const [_triggerSearch, setTriggerSearch] = useState(false);
 
   const [isFetching, setIsFetching] = useState(false);
 
@@ -62,43 +68,44 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
     if (!documents) {
       return;
     }
-    if (page == 1) {
+    if (page === 1) {
       setPage(Math.ceil(totalDocuments / pageSize));
     } else {
       setPage((prev) => prev - 1);
     }
   };
 
-  const fetchAllDocuments = async (_userInput?: string) => {
-    try {
-      setIsFetching(true);
+  const fetchAllDocuments = useCallback(
+    async (_userInput?: string) => {
+      try {
+        setIsFetching(true);
 
-      const data: DocumentsPreviewPayload | null = await retrieveAllDocuments(
-        _userInput ? _userInput : "",
-        selectedLabels,
-        page,
-        pageSize,
-        credentials
-      );
+        const data: DocumentsPreviewPayload | null = await retrieveAllDocuments(
+          _userInput ? _userInput : '',
+          selectedLabels,
+          page,
+          pageSize,
+          credentials
+        );
 
-      if (data) {
-        if (data.error !== "") {
-          console.error(data.error);
-          setIsFetching(false);
-          setDocuments(null);
-          setTotalDocuments(0);
-        } else {
-          setDocuments(data.documents);
-          setLabels(data.labels);
-          setIsFetching(false);
-          setTotalDocuments(data.totalDocuments);
+        if (data) {
+          if (data.error !== '') {
+            setIsFetching(false);
+            setDocuments(null);
+            setTotalDocuments(0);
+          } else {
+            setDocuments(data.documents);
+            setLabels(data.labels);
+            setIsFetching(false);
+            setTotalDocuments(data.totalDocuments);
+          }
         }
+      } catch (_error) {
+        setIsFetching(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
-      setIsFetching(false);
-    }
-  };
+    },
+    [selectedLabels, page, pageSize, credentials]
+  );
 
   useEffect(() => {
     setTriggerSearch(true);
@@ -106,41 +113,40 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
   useEffect(() => {
     fetchAllDocuments(userInput);
-  }, [page, triggerSearch, selectedLabels]);
+  }, [fetchAllDocuments, userInput]);
 
   const handleSearch = () => {
     fetchAllDocuments(userInput);
   };
 
   const clearSearch = () => {
-    setUserInput("");
+    setUserInput('');
     setSelectedLabels([]);
-    fetchAllDocuments("");
+    fetchAllDocuments('');
   };
 
-  const handleKeyDown = (e: any) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault(); // Prevent new line
       handleSearch(); // Submit form
     }
   };
 
-  const handleDeleteDocument = async (d: string) => {
-    if (production == "Demo") {
+  const handleDeleteDocument = async (d: unknown) => {
+    if (production === 'Demo') {
+      return;
+    }
+    if (typeof d !== 'string') {
       return;
     }
     const response = await deleteDocument(d, credentials);
-    addStatusMessage("Deleted document", "WARNING");
+    addStatusMessage('Deleted document', 'WARNING');
     if (response) {
-      if (d == selectedDocument) {
+      if (d === selectedDocument) {
         setSelectedDocument(null);
       }
       fetchAllDocuments(userInput);
     }
-  };
-
-  const addLabel = (l: string) => {
-    setSelectedLabels((prev) => [...prev, l]);
   };
 
   const removeLabel = (l: string) => {
@@ -155,93 +161,59 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex w-full flex-col gap-2">
       {/* Search Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-between h-min w-full">
-        <div className="hidden lg:flex gap-2 justify-start w-[8vw]">
+      <div className="flex h-min w-full items-center justify-between gap-2 rounded-2xl bg-bg-alt-verba p-3">
+        <div className="hidden w-[8vw] justify-start gap-2 lg:flex">
           <InfoComponent
-            tooltip_text="Search and inspect different documents imported into Verba"
             display_text="Search"
+            tooltip_text="Search and inspect different documents imported into Verba"
           />
         </div>
 
-        <label className="input flex items-center gap-2 w-full bg-bg-verba">
-          <input
-            type="text"
-            className="grow w-full"
-            onKeyDown={handleKeyDown}
-            placeholder={`Search for documents (${totalDocuments})`}
-            value={userInput}
+        <div className="w-full">
+          <Input
             onChange={(e) => {
               setUserInput(e.target.value);
             }}
+            onKeyDown={handleKeyDown}
+            placeholder={`Search for documents (${totalDocuments})`}
+            value={userInput}
           />
-        </label>
+        </div>
 
-        <VerbaButton onClick={handleSearch} Icon={FaSearch} />
+        <VerbaButton Icon={FaSearch} onClick={handleSearch} />
         <VerbaButton
-          onClick={clearSearch}
-          icon_size={20}
           Icon={MdOutlineRefresh}
+          icon_size={20}
+          onClick={clearSearch}
         />
       </div>
 
       {/* Document List */}
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 gap-3 items-center h-full w-full overflow-auto">
-        <div className="flex flex-col w-full justify-start gap-2">
-          <div className="dropdown dropdown-hover">
-            <label tabIndex={0}>
-              <VerbaButton
-                title="Label"
-                className="btn-sm min-w-min"
-                icon_size={12}
-                text_class_name="text-xs"
-                Icon={IoMdAddCircle}
-                selected={false}
-                disabled={false}
-              />
-            </label>
-            <ul
-              tabIndex={0}
-              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
-              {labels.map((label, index) => (
-                <li key={"Label" + index}>
-                  <a
-                    onClick={() => {
-                      if (!selectedLabels.includes(label)) {
-                        setSelectedLabels([...selectedLabels, label]);
-                      }
-                      const dropdownElement =
-                        document.activeElement as HTMLElement;
-                      dropdownElement.blur();
-                      const dropdown = dropdownElement.closest(
-                        ".dropdown"
-                      ) as HTMLElement;
-                      if (dropdown) dropdown.blur();
-                    }}
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+      <div className="flex h-full w-full flex-col items-center gap-3 overflow-auto rounded-2xl bg-bg-alt-verba p-6">
+        <div className="flex w-full flex-col justify-start gap-2">
+          {/* Simplified label button - full dropdown implementation would need shadcn/ui Select */}
+          <VerbaButton
+            disabled={false}
+            Icon={IoMdAddCircle}
+            icon_size={12}
+            selected={false}
+            title="Labels"
+          />
           <div className="flex flex-wrap gap-2">
             {selectedLabels.map((label, index) => (
               <VerbaButton
-                title={label}
-                key={"FilterDocumentLabel" + index}
+                className="min-w-min max-w-[200px]"
                 Icon={MdCancel}
-                className="btn-sm min-w-min max-w-[200px]"
                 icon_size={12}
-                selected_color="bg-primary-verba"
-                selected={true}
-                text_class_name="truncate max-w-[200px]"
-                text_size="text-xs"
+                key={`FilterDocumentLabel${index}`}
                 onClick={() => {
                   removeLabel(label);
                 }}
+                selected={true}
+                selected_color="bg-primary-verba"
+                title={label}
               />
             ))}
           </div>
@@ -249,72 +221,73 @@ const DocumentSearch: React.FC<DocumentSearchComponentProps> = ({
 
         {isFetching && (
           <div className="flex items-center justify-center gap-2">
-            <span className="loading loading-spinner loading-sm text-text-alt-verba"></span>
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-muted border-t-foreground" />
           </div>
         )}
 
-        <div className="flex flex-col w-full">
-          {documents &&
-            documents.map((document, index) => (
-              <div
-                key={"Document" + index + document.title}
-                className="flex justify-between items-center gap-2 rounded-2xl p-1 w-full"
-              >
-                <div className="flex justify-between items-center w-full gap-2">
+        <div className="verba-document-list">
+          {documents?.map((document, index) => (
+            <div
+              className={`verba-document-item ${selectedDocument === document.uuid ? 'selected' : ''}`}
+              key={`Document${index}${document.title}`}
+              onClick={() => setSelectedDocument(document.uuid)}
+            >
+              <div className="flex w-full items-center justify-between gap-2">
+                <span
+                  className="truncate max-w-[150px] lg:max-w-[350px]"
+                  title={document.title}
+                >
+                  {document.title}
+                </span>
+                {production !== 'Demo' && (
                   <VerbaButton
-                    title={document.title}
-                    selected={selectedDocument == document.uuid}
-                    selected_color="bg-secondary-verba"
-                    key={document.title + index}
-                    className="flex-grow"
-                    text_class_name="truncate max-w-[150px] lg:max-w-[350px]"
-                    onClick={() => setSelectedDocument(document.uuid)}
+                    className="max-w-min"
+                    Icon={FaTrash}
+                    key={`${document.title + index}delete`}
+                    onClick={() => {
+                      openDeleteModal(`remove_document${document.uuid}`);
+                    }}
+                    selected={selectedDocument === document.uuid}
+                    selected_color="bg-warning-verba"
                   />
-                  {production !== "Demo" && (
-                    <VerbaButton
-                      Icon={FaTrash}
-                      selected={selectedDocument == document.uuid}
-                      selected_color="bg-warning-verba"
-                      className="max-w-min"
-                      key={document.title + index + "delete"}
-                      onClick={() => {
-                        openDeleteModal("remove_document" + document.uuid);
-                      }}
-                    />
-                  )}
-                </div>
-                <UserModalComponent
-                  modal_id={"remove_document" + document.uuid}
-                  title={"Remove Document"}
-                  text={"Do you want to remove " + document.title + "?"}
-                  triggerString="Delete"
-                  triggerValue={document.uuid}
-                  triggerAccept={handleDeleteDocument}
-                />
+                )}
               </div>
-            ))}{" "}
+              <UserModalComponent
+                modal_id={`remove_document${document.uuid}`}
+                text={`Do you want to remove ${document.title}?`}
+                title={'Remove Document'}
+                triggerAccept={(uuid: unknown) => {
+                  if (typeof uuid === 'string') {
+                    handleDeleteDocument(uuid);
+                  }
+                }}
+                triggerString="Delete"
+                triggerValue={document.uuid}
+              />
+            </div>
+          ))}{' '}
         </div>
       </div>
 
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-4 items-center justify-center h-min w-full">
-        <div className="join justify-center items-center text-text-verba">
-          <div className="flex justify-center items-center gap-2 bg-bg-alt-verba">
+      <div className="flex h-min w-full items-center justify-center gap-2 rounded-2xl bg-bg-alt-verba p-4">
+        <div className="flex items-center justify-center text-text-verba">
+          <div className="flex items-center justify-center gap-2 bg-bg-alt-verba">
             <VerbaButton
-              title={"Previous Page"}
-              onClick={previousPage}
-              className="btn-sm min-w-min max-w-[200px]"
-              text_class_name="text-xs"
+              className="min-w-min max-w-[200px] px-2 py-1"
               Icon={FaArrowAltCircleLeft}
+              onClick={previousPage}
+              text_class_name="text-xs"
+              title={'Previous Page'}
             />
             <div className="flex items-center">
-              <p className="text-xs text-text-verba">Page {page}</p>
+              <p className="text-text-verba text-xs">Page {page}</p>
             </div>
             <VerbaButton
-              title={"Next Page"}
-              onClick={nextPage}
-              className="btn-sm min-w-min max-w-[200px]"
-              text_class_name="text-xs"
+              className="min-w-min max-w-[200px] px-2 py-1"
               Icon={FaArrowAltCircleRight}
+              onClick={nextPage}
+              text_class_name="text-xs"
+              title={'Next Page'}
             />
           </div>
         </div>

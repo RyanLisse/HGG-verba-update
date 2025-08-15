@@ -3,11 +3,13 @@ import json
 import os
 
 import aiohttp
+import httpx
 from wasabi import msg
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment, get_token
+from goldenverba.components.http_client import AsyncSafeModelManager
 
 
 class OpenAIEmbedder(Embedding):
@@ -22,14 +24,15 @@ class OpenAIEmbedder(Embedding):
         api_key = get_token("OPENAI_EMBED_API_KEY")
         api_key = api_key if api_key else get_token("OPENAI_API_KEY")
 
-        # Fetch available models
+        # Fetch available models using async-safe manager
         base_url = os.getenv("OPENAI_EMBED_BASE_URL")
         base_url = (
             base_url
             if base_url
             else os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
         )
-        models = self.get_models(api_key, base_url)
+        self._model_manager = AsyncSafeModelManager()
+        models = self._model_manager.get_models_safe(api_key, base_url)
 
         # Set up configuration
         default_model = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-small")
@@ -47,7 +50,10 @@ class OpenAIEmbedder(Embedding):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="OpenAI API Key (or set OPENAI_EMBED_API_KEY or OPENAI_API_KEY env var)",
+                description=(
+                    "OpenAI API Key (or set OPENAI_EMBED_API_KEY or "
+                    "OPENAI_API_KEY env var)"
+                ),
                 values=[],
             )
         if (
@@ -106,15 +112,18 @@ class OpenAIEmbedder(Embedding):
                     embeddings = [item["embedding"] for item in data["data"]]
                     if len(embeddings) != len(content):
                         raise ValueError(
-                            f"Mismatch in embedding count: got {len(embeddings)}, expected {len(content)}"
+                            f"Mismatch in embedding count: got {len(embeddings)}, "
+                            f"expected {len(content)}"
                         )
 
                     return embeddings
 
             except aiohttp.ClientError as e:
                 if isinstance(e, aiohttp.ClientResponseError) and e.status == 429:
-                    raise Exception("Rate limit exceeded. Waiting before retrying...")
-                raise Exception(f"API request failed: {e!s}")
+                    raise RuntimeError(
+                        "Rate limit exceeded. Waiting before retrying..."
+                    ) from e
+                raise RuntimeError(f"API request failed: {e!s}") from e
 
             except Exception as e:
                 msg.fail(f"Unexpected error: {type(e).__name__} - {e!s}")
@@ -122,31 +131,14 @@ class OpenAIEmbedder(Embedding):
 
     @staticmethod
     def get_models(token: str, url: str) -> list[str]:
-        """Fetch available embedding models from OpenAI API."""
-        try:
-            if token is None:
-                return [
-                    "text-embedding-ada-002",
-                    "text-embedding-3-small",
-                    "text-embedding-3-large",
-                ]
-
-            import requests  # Import here to avoid dependency if not needed
-
-            headers = {"Authorization": f"Bearer {token}"}
-            response = requests.get(f"{url}/models", headers=headers)
-            response.raise_for_status()
-            fetch_models = [model["id"] for model in response.json()["data"]]
-            if not os.getenv("OPENAI_CUSTOM_EMBED", False):
-                # this is not a custom OpenAI so we can filter out non-embedding OpenAI models
-                fetch_models = [
-                    model_id for model_id in fetch_models if "embedding" in model_id
-                ]
-            return fetch_models
-        except Exception as e:
-            msg.info(f"Failed to fetch OpenAI embedding models: {e!s}")
-            return [
-                "text-embedding-ada-002",
-                "text-embedding-3-small",
-                "text-embedding-3-large",
-            ]
+        """Fetch available embedding models from OpenAI API.
+        
+        This method is kept for backward compatibility but now uses
+        the async-safe model manager internally.
+        """
+        model_manager = AsyncSafeModelManager()
+        return model_manager.get_models_safe(token, url)
+    
+    async def get_models_async(self, token: str, url: str) -> list[str]:
+        """Async version of get_models for use in async contexts."""
+        return await self._model_manager.get_models_async(token, url)

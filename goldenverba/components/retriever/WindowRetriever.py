@@ -4,7 +4,8 @@ from goldenverba.components.types import InputConfig
 
 class WindowRetriever(Retriever):
     """
-    WindowRetriever that retrieves chunks and their surrounding context depending on the window size.
+    WindowRetriever that retrieves chunks and their surrounding context
+    depending on the window size.
     """
 
     def __init__(self):
@@ -21,19 +22,27 @@ class WindowRetriever(Retriever):
         self.config["Limit Mode"] = InputConfig(
             type="dropdown",
             value="Autocut",
-            description="Method for limiting the results. Autocut decides automatically how many chunks to retrieve, while fixed sets a fixed limit.",
+            description=(
+                "Method for limiting the results. Autocut decides automatically "
+                "how many chunks to retrieve, while fixed sets a fixed limit."
+            ),
             values=["Autocut", "Fixed"],
         )
         self.config["Limit/Sensitivity"] = InputConfig(
             type="number",
             value=1,
-            description="Value for limiting the results. Value controls Autocut sensitivity and Fixed Size",
+            description=(
+                "Value for limiting the results. Value controls Autocut "
+                "sensitivity and Fixed Size"
+            ),
             values=[],
         )
         self.config["Chunk Window"] = InputConfig(
             type="number",
             value=1,
-            description="Number of surrounding chunks of retrieved chunks to add to context",
+            description=(
+                "Number of surrounding chunks of retrieved chunks to add to context"
+            ),
             values=[],
         )
         self.config["Threshold"] = InputConfig(
@@ -111,10 +120,9 @@ class WindowRetriever(Retriever):
             return (value - min_value) / (max_value - min_value)
 
         def generate_window_list(value, window):
-
             value = int(value)
             window = int(window)
-            # Create a range of values around the given value, excluding the original value
+            # Create a range of values around the given value, excluding the\n            # original value
             return [i for i in range(value - window, value + window + 1) if i != value]
 
         documents = []
@@ -204,7 +212,6 @@ class WindowRetriever(Retriever):
         return (sorted_documents, context)
 
     def combine_context(self, documents: list[dict]) -> str:
-
         context = ""
 
         for document in documents:
@@ -212,7 +219,7 @@ class WindowRetriever(Retriever):
             if len(document["metadata"]) > 0:
                 context += f"Document Metadata: {document['metadata']}\n"
             for chunk in document["chunks"]:
-                context += f"Chunk: {int(chunk['chunk_id'])+1}\n"
+                context += f"Chunk: {int(chunk['chunk_id']) + 1}\n"
                 if chunk["score"] > 0:
                     context += f"High Relevancy: {chunk['score']:.2f}\n"
                 context += f"{chunk['content']}\n"

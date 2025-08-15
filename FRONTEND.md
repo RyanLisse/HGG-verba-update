@@ -21,10 +21,10 @@ git clone https://github.com/weaviate/Verba.git
 2. **Installation**:
 
    - Navigate to the frontend directory: `cd frontend`
-   - Run `npm install` to install the dependencies required for the project.
+   - Run `pnpm install` to install the dependencies required for the project.
 
 3. **Development Server**:
-   - Launch the application in development mode by executing `npm run dev`.
+   - Launch the application in development mode by executing `pnpm run dev`.
    - Open your web browser and visit `http://localhost:3000` to view the application.
 
 ## 📦 Building Static Pages for FastAPI
@@ -32,4 +32,4 @@ git clone https://github.com/weaviate/Verba.git
 If you wish to serve and update the frontend through FastAPI, you need to build static pages:
 
 1. **Build Process**:
-   - Execute `npm run build` to generate the static production build. The output will be directed to the FastAPI folder configured to serve the static content.
+   - Execute `pnpm run build` to generate the static production build. The output will be directed to the FastAPI folder configured to serve the static content.

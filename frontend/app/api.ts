@@ -1,47 +1,46 @@
-import {
-  ConnectPayload,
-  HealthPayload,
-  RAGConfig,
-  QueryPayload,
-  Credentials,
-  DocumentsPreviewPayload,
-  DocumentPayload,
-  ChunkScore,
-  ContentPayload,
-  ChunksPayload,
-  RAGConfigResponse,
+import type {
   AllSuggestionsPayload,
-  MetadataPayload,
-  DatacountResponse,
-  SuggestionsPayload,
   ChunkPayload,
+  ChunkScore,
+  ChunksPayload,
+  ConnectPayload,
+  ContentPayload,
+  Credentials,
+  DatacountResponse,
   DocumentFilter,
-  VectorsPayload,
-  UserConfigResponse,
-  ThemeConfigResponse,
-  Theme,
-  UserConfig,
+  DocumentPayload,
+  DocumentsPreviewPayload,
+  HealthPayload,
   LabelsResponse,
+  MetadataPayload,
+  QueryPayload,
+  RAGConfig,
+  RAGConfigResponse,
+  SuggestionsPayload,
+  Theme,
+  ThemeConfigResponse,
   Themes,
-} from "./types";
+  UserConfig,
+  UserConfigResponse,
+  VectorsPayload,
+} from './types';
 
 const checkUrl = async (url: string): Promise<boolean> => {
   try {
     const response = await fetch(url);
     return response.ok;
-  } catch (error) {
-    console.error(`Failed to fetch from ${url}:`, error);
+  } catch (_error) {
     return false;
   }
 };
 
 export const detectHost = async (): Promise<string> => {
-  const localUrl = "http://localhost:8000/api/health";
-  const rootUrl = "/api/health";
+  const localUrl = 'http://localhost:8000/api/health';
+  const rootUrl = '/api/health';
 
   const isLocalHealthy = await checkUrl(localUrl);
   if (isLocalHealthy) {
-    return "http://localhost:8000";
+    return 'http://localhost:8000';
   }
 
   const isRootHealthy = await checkUrl(rootUrl);
@@ -50,29 +49,27 @@ export const detectHost = async (): Promise<string> => {
     return root;
   }
 
-  throw new Error("Both health checks failed, please check the Verba Server");
+  throw new Error('Both health checks failed, please check the Verba Server');
 };
 
 export const fetchData = async <T>(endpoint: string): Promise<T | null> => {
   try {
     const host = await detectHost();
-    const response = await fetch(`${host}${endpoint}`, { method: "GET" });
+    const response = await fetch(`${host}${endpoint}`, { method: 'GET' });
     const data = await response.json();
 
     if (!data) {
-      console.warn(`Could not retrieve data from ${endpoint}`);
     }
 
     return data;
-  } catch (error) {
-    console.error(`Failed to fetch data from ${endpoint}:`, error);
+  } catch (_error) {
     return null;
   }
 };
 
 // Endpoint /api/health
 export const fetchHealth = (): Promise<HealthPayload | null> =>
-  fetchData<HealthPayload>("/api/health");
+  fetchData<HealthPayload>('/api/health');
 
 // Endpoint /api/connect
 export const connectToVerba = async (
@@ -83,17 +80,17 @@ export const connectToVerba = async (
 ): Promise<ConnectPayload | null> => {
   const host = await detectHost();
   const response = await fetch(`${host}/api/connect`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       credentials: {
-        deployment: deployment,
-        url: url,
+        deployment,
+        url,
         key: apiKey,
       },
-      port: port,
+      port,
     }),
   });
   const data = await response.json();
@@ -107,16 +104,15 @@ export const fetchRAGConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_rag_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
     const data: RAGConfigResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -133,16 +129,15 @@ export const updateRAGConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/set_rag_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ rag_config: RAG, credentials: credentials }),
+      body: JSON.stringify({ rag_config: RAG, credentials }),
     });
 
     return response.status === 200;
-  } catch (error) {
-    console.error("Error setting config:", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -154,16 +149,15 @@ export const fetchUserConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_user_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
     const data: UserConfigResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -176,19 +170,18 @@ export const updateUserConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/set_user_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        user_config: user_config,
-        credentials: credentials,
+        user_config,
+        credentials,
       }),
     });
 
     return response.status === 200;
-  } catch (error) {
-    console.error("Error setting config:", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -200,16 +193,15 @@ export const fetchThemeConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_theme_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
     const data: ThemeConfigResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -223,20 +215,19 @@ export const updateThemeConfig = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/set_theme_config`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        themes: themes,
-        theme: theme,
-        credentials: credentials,
+        themes,
+        theme,
+        credentials,
       }),
     });
 
     return response.status === 200;
-  } catch (error) {
-    console.error("Error setting config:", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -252,23 +243,22 @@ export const sendUserQuery = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/query`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: query,
-        RAG: RAG,
-        labels: labels,
-        documentFilter: documentFilter,
-        credentials: credentials,
+        query,
+        RAG,
+        labels,
+        documentFilter,
+        credentials,
       }),
     });
 
     const data: QueryPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error sending query", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -285,19 +275,18 @@ export const fetchSelectedDocument = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_document`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        credentials: credentials,
+        uuid,
+        credentials,
       }),
     });
     const data: DocumentPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving selected document", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -311,20 +300,19 @@ export const fetchDatacount = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_datacount`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        embedding_model: embedding_model,
-        documentFilter: documentFilter,
-        credentials: credentials,
+        embedding_model,
+        documentFilter,
+        credentials,
       }),
     });
     const data: DatacountResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -336,16 +324,15 @@ export const fetchLabels = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_labels`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
     const data: LabelsResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -364,21 +351,20 @@ export const fetchContent = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_content`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        page: page,
-        chunkScores: chunkScores,
-        credentials: credentials,
+        uuid,
+        page,
+        chunkScores,
+        credentials,
       }),
     });
     const data: ContentPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -396,20 +382,19 @@ export const fetch_vectors = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_vectors`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        showAll: showAll,
-        credentials: credentials,
+        uuid,
+        showAll,
+        credentials,
       }),
     });
     const data: VectorsPayload | null = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -428,21 +413,20 @@ export const fetch_chunks = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_chunks`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        page: page,
-        pageSize: pageSize,
-        credentials: credentials,
+        uuid,
+        page,
+        pageSize,
+        credentials,
       }),
     });
     const data: ChunksPayload | null = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -460,20 +444,19 @@ export const fetch_chunk = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_chunk`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        embedder: embedder,
-        credentials: credentials,
+        uuid,
+        embedder,
+        credentials,
       }),
     });
     const data: ChunkPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving content", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -489,22 +472,21 @@ export const retrieveAllDocuments = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_all_documents`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: query,
-        labels: labels,
-        page: page,
-        pageSize: pageSize,
-        credentials: credentials,
+        query,
+        labels,
+        page,
+        pageSize,
+        credentials,
       }),
     });
     const data: DocumentsPreviewPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving all documents", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -517,18 +499,17 @@ export const deleteDocument = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/delete_document`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        credentials: credentials,
+        uuid,
+        credentials,
       }),
     });
     return response.status === 200;
-  } catch (error) {
-    console.error("Error deleting document", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -541,18 +522,17 @@ export const deleteAllDocuments = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/reset`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        resetMode: resetMode,
-        credentials: credentials,
+        resetMode,
+        credentials,
       }),
     });
     return response.status === 200;
-  } catch (error) {
-    console.error("Error deleting all documents", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -564,16 +544,15 @@ export const fetchMeta = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_meta`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
     const data: MetadataPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving selected document", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -587,20 +566,19 @@ export const fetchSuggestions = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_suggestions`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: query,
-        limit: limit,
-        credentials: credentials,
+        query,
+        limit,
+        credentials,
       }),
     });
     const data: SuggestionsPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving suggestions", error);
+  } catch (_error) {
     return null;
   }
 };
@@ -613,18 +591,17 @@ export const deleteSuggestion = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/delete_suggestion`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        uuid: uuid,
-        credentials: credentials,
+        uuid,
+        credentials,
       }),
     });
     return response.status === 200;
-  } catch (error) {
-    console.error("Error deleting suggestion", error);
+  } catch (_error) {
     return false;
   }
 };
@@ -638,20 +615,19 @@ export const fetchAllSuggestions = async (
   try {
     const host = await detectHost();
     const response = await fetch(`${host}/api/get_all_suggestions`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        page: page,
-        pageSize: pageSize,
-        credentials: credentials,
+        page,
+        pageSize,
+        credentials,
       }),
     });
     const data: AllSuggestionsPayload = await response.json();
     return data;
-  } catch (error) {
-    console.error("Error retrieving all suggestions", error);
+  } catch (_error) {
     return null;
   }
 };

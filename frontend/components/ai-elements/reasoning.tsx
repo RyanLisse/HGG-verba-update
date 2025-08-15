@@ -1,9 +1,9 @@
 'use client';
 
+import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/app/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 
 export type ReasoningProps = {
   text?: string;
@@ -20,22 +20,24 @@ export const Reasoning = ({
   title = 'Reasoning',
 }: ReasoningProps) => {
   const [open, setOpen] = useState(initiallyOpen);
-  if (!text || text.trim().length === 0) return null;
+  if (!text || text.trim().length === 0) {
+    return null;
+  }
   return (
     <div
       className={cn(
         'rounded-xl border border-border bg-background text-foreground shadow-sm',
-        className,
+        className
       )}
     >
       <div className="flex items-center justify-between px-3 py-2">
-        <div className="text-sm font-medium opacity-80">{title}</div>
+        <div className="font-medium text-sm opacity-80">{title}</div>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setOpen((o) => !o)}
             className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            onClick={() => setOpen((o) => !o)}
+            size="sm"
+            variant="ghost"
           >
             {open ? (
               <ChevronUpIcon className="h-4 w-4" />
@@ -47,7 +49,9 @@ export const Reasoning = ({
       </div>
       {open && (
         <div className="px-3 pb-3">
-          <pre className="whitespace-pre-wrap text-xs leading-5 opacity-90">{text}</pre>
+          <pre className="whitespace-pre-wrap text-xs leading-5 opacity-90">
+            {text}
+          </pre>
         </div>
       )}
     </div>
@@ -55,4 +59,3 @@ export const Reasoning = ({
 };
 
 export default Reasoning;
-

@@ -1,33 +1,31 @@
-"use client";
+'use client';
 
-import React from "react";
-import { ChunkScore, Message } from "@/app/types";
-import ReactMarkdown from "react-markdown";
-import { FaDatabase } from "react-icons/fa";
-import { BiError } from "react-icons/bi";
-import { IoNewspaper } from "react-icons/io5";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { IoDocumentAttach } from "react-icons/io5";
+import type React from 'react';
+import { BiError } from 'react-icons/bi';
+import { FaDatabase } from 'react-icons/fa';
+import { IoDocumentAttach, IoNewspaper } from 'react-icons/io5';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import {
   oneDark,
   oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
+} from 'react-syntax-highlighter/dist/cjs/styles/prism';
+import type { ChunkScore, Message } from '@/app/types';
 
-interface CodeProps {
+type CodeProps = {
   node?: unknown;
   inline?: boolean;
-  className?: string;
-  children: React.ReactNode;
+  className?: string | undefined;
+  children?: React.ReactNode;
   [key: string]: unknown;
-}
+};
 
-import VerbaButton from "../Navigation/VerbaButton";
-import { Actions, Action } from "@/components/ai-elements/actions";
-import { logFeedback } from "@/app/lib/langsmith";
+import { logFeedback } from '@/app/lib/langsmith';
+import type { Theme } from '@/app/types';
+import { Action, Actions } from '@/components/ai-elements/actions';
+import VerbaButton from '../Navigation/VerbaButton';
 
-import { Theme } from "@/app/types";
-
-interface ChatMessageProps {
+type ChatMessageProps = {
   message: Message;
   message_index: number;
   selectedTheme: Theme;
@@ -35,7 +33,7 @@ interface ChatMessageProps {
   setSelectedDocument: (s: string | null) => void;
   setSelectedDocumentScore: (s: string | null) => void;
   setSelectedChunkScore: (s: ChunkScore[]) => void;
-}
+};
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
@@ -47,78 +45,82 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   setSelectedChunkScore,
 }) => {
   const colorTable = {
-    user: "bg-bg-verba",
-    system: "bg-bg-alt-verba",
-    error: "bg-warning-verba",
-    retrieval: "bg-bg-verba",
+    user: 'bg-bg-verba',
+    system: 'bg-bg-alt-verba',
+    error: 'bg-warning-verba',
+    retrieval: 'bg-bg-verba',
   };
 
-  if (typeof message.content === "string") {
+  if (typeof message.content === 'string') {
     return (
       <div
-        className={`flex items-end gap-2 ${message.type === "user" ? "justify-end" : "justify-start"}`}
+        className={`flex items-end gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
       >
         <div
-          className={`flex flex-col items-start p-5 rounded-3xl animate-press-in text-sm lg:text-base ${colorTable[message.type]}`}
+          className={`flex animate-press-in flex-col items-start rounded-3xl p-5 text-sm lg:text-base ${colorTable[message.type]}`}
         >
           {message.cached && (
-            <FaDatabase size={12} className="text-text-verba" />
+            <FaDatabase className="text-text-verba" size={12} />
           )}
-          {message.type === "system" && (
-            <ReactMarkdown
-              className="prose md:prose-sm lg:prose-base p-3 prose-pre:bg-bg-alt-verba"
-              components={{
-                code({ node, inline, className, children, ...props }: CodeProps) {
-                  const match = /language-(\w+)/.exec(className || "");
-                  return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={
-                        selectedTheme.theme === "dark"
-                          ? oneDark
-                          : oneLight
-                      }
-                      language={match[1]}
-                      PreTag="div"
-                      {...props}
-                    >
-                      {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
-                  ) : (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+          {message.type === 'system' && (
+            <div className="prose md:prose-sm lg:prose-base prose-pre:bg-bg-alt-verba p-3">
+              <ReactMarkdown
+                components={{
+                  code(props: any) {
+                    const { inline, className, children, ...rest } = props;
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        language={match[1]}
+                        PreTag="div"
+                        style={
+                          selectedTheme.theme === 'dark' ? oneDark : oneLight
+                        }
+                        {...rest}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...rest}>
+                        {children}
+                      </code>
+                    );
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
           )}
-          {message.type === "system" && (
+          {message.type === 'system' && (
             <div className="pt-2">
               <Actions>
                 <Action
                   label="Good"
+                  onClick={() =>
+                    logFeedback('message', 'up', { index: message_index })
+                  }
                   tooltip="Thumbs up"
-                  onClick={() => logFeedback('message', 'up', { index: message_index })}
                 >
                   👍
                 </Action>
                 <Action
                   label="Bad"
+                  onClick={() =>
+                    logFeedback('message', 'down', { index: message_index })
+                  }
                   tooltip="Thumbs down"
-                  onClick={() => logFeedback('message', 'down', { index: message_index })}
                 >
                   👎
                 </Action>
               </Actions>
             </div>
           )}
-          {message.type === "user" && (
+          {message.type === 'user' && (
             <div className="whitespace-pre-wrap">{message.content}</div>
           )}
-          {message.type === "error" && (
-            <div className="whitespace-pre-wrap flex items-center gap-2 text-sm text-text-verba">
+          {message.type === 'error' && (
+            <div className="flex items-center gap-2 whitespace-pre-wrap text-sm text-text-verba">
               <BiError size={15} />
               <p>{message.content}</p>
             </div>
@@ -126,62 +128,61 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
       </div>
     );
-  } else {
-    return (
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 w-full items-center">
-        {message.content.map((document, index) => (
-          <button
-            onClick={() => {
-              setSelectedDocument(document.uuid);
-              setSelectedDocumentScore(
-                document.uuid + document.score + document.chunks.length
-              );
-              setSelectedChunkScore(document.chunks);
-            }}
-            key={"Retrieval" + document.title + index}
-            className={`flex ${selectedDocument && selectedDocument === document.uuid + document.score + document.chunks.length ? "bg-secondary-verba hover:bg-button-hover-verba" : "bg-button-verba hover:bg-secondary-verba"} rounded-3xl p-3 items-center justify-between transition-colors duration-300 ease-in-out border-none`}
-          >
-            <div className="flex items-center justify-between w-full">
-              <p
-                className="text-xs flex-grow truncate mr-2"
-                title={document.title}
-              >
-                {document.title}
-              </p>
-              <div className="flex gap-1 items-center text-text-verba flex-shrink-0">
-                <IoNewspaper size={12} />
-                <p className="text-sm">{document.chunks.length}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-        <VerbaButton
-          Icon={IoDocumentAttach}
-          className="btn-sm btn-square"
-          onClick={() =>
-            (
-              document.getElementById(
-                "context-modal-" + message_index
-              ) as HTMLDialogElement
-            ).showModal()
-          }
-        />
-        <dialog id={"context-modal-" + message_index} className="modal">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">Context</h3>
-            <p className="py-4">{message.context}</p>
-            <div className="modal-action">
-              <form method="dialog">
-                <button className="btn focus:outline-none text-text-alt-verba bg-button-verba hover:bg-button-hover-verba hover:text-text-verba border-none shadow-none">
-                  <p>Close</p>
-                </button>
-              </form>
+  }
+  return (
+    <div className="grid w-full grid-cols-2 items-center gap-3 lg:grid-cols-3">
+      {message.content.map((document, index) => (
+        <button
+          className={`flex ${selectedDocument && selectedDocument === document.uuid + document.score + document.chunks.length ? 'bg-secondary-verba hover:bg-button-hover-verba' : 'bg-button-verba hover:bg-secondary-verba'} items-center justify-between rounded-3xl border-none p-3 transition-colors duration-300 ease-in-out`}
+          key={`Retrieval${document.title}${index}`}
+          onClick={() => {
+            setSelectedDocument(document.uuid);
+            setSelectedDocumentScore(
+              document.uuid + document.score + document.chunks.length
+            );
+            setSelectedChunkScore(document.chunks);
+          }}
+        >
+          <div className="flex w-full items-center justify-between">
+            <p className="mr-2 grow truncate text-xs" title={document.title}>
+              {document.title}
+            </p>
+            <div className="flex shrink-0 items-center gap-1 text-text-verba">
+              <IoNewspaper size={12} />
+              <p className="text-sm">{document.chunks.length}</p>
             </div>
           </div>
-        </dialog>
-      </div>
-    );
-  }
+        </button>
+      ))}
+      <VerbaButton
+        className="p-2 rounded-md"
+        Icon={IoDocumentAttach}
+        onClick={() =>
+          (
+            document.getElementById(
+              `context-modal-${message_index}`
+            ) as HTMLDialogElement
+          ).showModal()
+        }
+      />
+      <dialog
+        className="rounded-md backdrop:bg-black/40"
+        id={`context-modal-${message_index}`}
+      >
+        <div className="rounded-md bg-background p-4 text-foreground shadow-md">
+          <h3 className="font-bold text-lg">Context</h3>
+          <p className="py-4">{message.context}</p>
+          <div className="mt-4 flex justify-end">
+            <form method="dialog">
+              <button className="inline-flex items-center justify-center rounded-md bg-button-verba px-3 py-1.5 text-text-alt-verba hover:bg-button-hover-verba">
+                <p>Close</p>
+              </button>
+            </form>
+          </div>
+        </div>
+      </dialog>
+    </div>
+  );
 };
 
 export default ChatMessage;

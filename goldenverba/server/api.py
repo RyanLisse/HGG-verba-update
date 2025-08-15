@@ -82,32 +82,48 @@ async def check_same_origin(request: Request, call_next):
     if request.url.path == "/api/health":
         return await call_next(request)
 
-    origin = request.headers.get("origin")
-    if origin == str(request.base_url).rstrip("/") or (
-        origin
-        and origin.startswith("http://localhost:")
-        and request.base_url.hostname == "localhost"
-    ):
+    # Only restrict /api/* routes; allow everything else (static, root, etc.)
+    if not request.url.path.startswith("/api/"):
         return await call_next(request)
-    # Only apply restrictions to /api/ routes (except /api/health)
-    if request.url.path.startswith("/api/"):
-        return JSONResponse(
-            status_code=403,
-            content={
-                "error": "Not allowed",
-                "details": {
-                    "request_origin": origin,
-                    "expected_origin": str(request.base_url),
-                    "request_method": request.method,
-                    "request_url": str(request.url),
-                    "request_headers": dict(request.headers),
-                    "expected_header": "Origin header matching the server's base URL or localhost",
-                },
-            },
-        )
 
-    # Allow non-API routes to pass through
-    return await call_next(request)
+    origin = request.headers.get("origin")
+
+    # Allow programmatic access (curl, server-to-server) where Origin is not set
+    if not origin:
+        return await call_next(request)
+
+    # Compare hosts while ignoring scheme and port
+    try:
+        from urllib.parse import urlparse
+        origin_host = urlparse(origin).hostname
+    except Exception:
+        origin_host = None
+
+    base_host = request.base_url.hostname
+
+    # Allow any localhost/127.0.0.1 combination regardless of port
+    if origin_host in ("localhost", "127.0.0.1") and base_host in ("localhost", "127.0.0.1"):
+        return await call_next(request)
+
+    # Allow when the origin host exactly matches the server host (port-agnostic)
+    if origin_host and base_host and origin_host == base_host:
+        return await call_next(request)
+
+    # Block other cross-origin requests to /api/* with a detailed error for debugging
+    return JSONResponse(
+        status_code=403,
+        content={
+            "error": "Not allowed",
+            "details": {
+                "request_origin": origin,
+                "expected_origin": str(request.base_url),
+                "request_method": request.method,
+                "request_url": str(request.url),
+                "request_headers": dict(request.headers),
+                "expected_header": "Origin header with matching host (or localhost) to the server's base URL",
+            },
+        },
+    )
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -135,7 +151,6 @@ async def serve_frontend():
 # Define health check endpoint
 @app.get("/api/health")
 async def health_check():
-
     await client_manager.clean_up()
 
     if production == "Local":
@@ -149,7 +164,7 @@ async def health_check():
             "production": production,
             "gtag": tag,
             "deployments": deployments,
-            "default_deployment": os.getenv("DEFAULT_DEPLOYMENT", ""),
+            "default_deployment": os.getenv("DEFAULT_DEPLOYMENT", "Local"),
         }
     )
 
@@ -232,7 +247,6 @@ async def websocket_generate_stream(websocket: WebSocket):
 
 @app.websocket("/ws/import_files")
 async def websocket_import_files(websocket: WebSocket):
-
     if production == "Demo":
         return
 
@@ -752,10 +766,11 @@ async def get_suggestions(payload: GetSuggestionsPayload):
 async def get_all_suggestions(payload: GetAllSuggestionsPayload):
     try:
         client = await client_manager.connect(payload.credentials)
-        suggestions, total_count = (
-            await manager.weaviate_manager.retrieve_all_suggestions(
-                client, payload.page, payload.pageSize
-            )
+        (
+            suggestions,
+            total_count,
+        ) = await manager.weaviate_manager.retrieve_all_suggestions(
+            client, payload.page, payload.pageSize
         )
         return JSONResponse(
             content={

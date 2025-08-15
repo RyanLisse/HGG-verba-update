@@ -1,7 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @import "tw-animate-css";
+@config "../tailwind.config.ts";
 
 .react-colorful {
   height: 100px;
@@ -72,4 +72,274 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-ring: var(--ring);
+
+  /* Custom Verba theme tokens used throughout the app */
+  --color-bg-verba: var(--bg-verba);
+  --color-bg-alt-verba: var(--bg-alt-verba);
+  --color-primary-verba: var(--primary-verba);
+  --color-secondary-verba: var(--secondary-verba);
+  --color-warning-verba: var(--warning-verba);
+  --color-text-verba: var(--text-verba);
+  --color-text-alt-verba: var(--text-alt-verba);
+  --color-button-verba: var(--button-verba);
+  --color-button-hover-verba: var(--button-hover-verba);
+  --color-text-verba-button: var(--text-verba-button);
+  --color-text-alt-verba-button: var(--text-alt-verba-button);
+}
+
+/* Verba Design System - Professional Theme */
+:root {
+  /* Core Verba brand colors from reference image */
+  --bg-verba: #ffffff; /* Clean white background */
+  --bg-alt-verba: #f1f5f9; /* Light gray sections */
+  --primary-verba: #10b981; /* Verba green */
+  --secondary-verba: #fbbf24; /* Verba yellow */
+  --warning-verba: #ef4444; /* Error red */
+  --text-verba: #1f2937; /* Dark text */
+  --text-alt-verba: #6b7280; /* Muted text */
+  --button-verba: #fbbf24; /* Yellow buttons */
+  --button-hover-verba: #f59e0b; /* Darker yellow on hover */
+  --text-verba-button: #1f2937; /* Dark text on yellow */
+  --text-alt-verba-button: #ffffff; /* White text for dark buttons */
+}
+
+.dark {
+  /* Dark mode Verba colors */
+  --bg-verba: #0f172a;
+  --bg-alt-verba: #1e293b;
+  --primary-verba: #34d399;
+  --secondary-verba: #fcd34d;
+  --warning-verba: #dc2626;
+  --text-verba: #f8fafc;
+  --text-alt-verba: #94a3b8;
+  --button-verba: #fcd34d;
+  --button-hover-verba: #fbbf24;
+  --text-verba-button: #0f172a;
+  --text-alt-verba-button: #f8fafc;
+}
+
+/* Verba Component Styling */
+.verba-container {
+  min-height: 100vh;
+  background-color: var(--color-bg-verba);
+  color: var(--color-text-verba);
+}
+
+.verba-header {
+  background-color: var(--color-bg-verba);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verba-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary-verba);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verba-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.verba-nav-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-alt-verba);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.verba-nav-button:hover {
+  background-color: var(--color-bg-alt-verba);
+  color: var(--color-text-verba);
+}
+
+.verba-nav-button.active {
+  background-color: var(--color-button-verba);
+  color: var(--color-text-verba-button);
+}
+
+.verba-chat-button {
+  background-color: var(--color-button-verba);
+  color: var(--color-text-verba-button);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.verba-chat-button:hover {
+  background-color: var(--color-button-hover-verba);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.verba-sidebar {
+  background-color: var(--color-bg-alt-verba);
+  border-right: 1px solid var(--color-border);
+  width: 320px;
+  min-height: calc(100vh - 5rem);
+  padding: 1.5rem;
+}
+
+.verba-document-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.verba-document-item {
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  background-color: var(--color-bg-verba);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.verba-document-item:hover {
+  border-color: var(--color-primary-verba);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.verba-document-item.selected {
+  border-color: var(--color-primary-verba);
+  background-color: var(--color-primary-verba);
+  color: var(--color-text-alt-verba-button);
+}
+
+.verba-main-content {
+  flex: 1;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.verba-chat-interface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.verba-message {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  max-width: 80%;
+}
+
+.verba-message.user {
+  background-color: var(--color-button-verba);
+  color: var(--color-text-verba-button);
+  margin-left: auto;
+}
+
+.verba-message.assistant {
+  background-color: var(--color-bg-alt-verba);
+  color: var(--color-text-verba);
+}
+
+.verba-input-container {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  padding: 1rem;
+  background-color: var(--color-bg-alt-verba);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-border);
+}
+
+.verba-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text-verba);
+  font-size: 1rem;
+  outline: none;
+  resize: none;
+  min-height: 2.5rem;
+  max-height: 8rem;
+}
+
+.verba-input::placeholder {
+  color: var(--color-text-alt-verba);
+}
+
+.verba-send-button {
+  background-color: var(--color-primary-verba);
+  color: var(--color-text-alt-verba-button);
+  border: none;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.verba-send-button:hover {
+  background-color: var(--color-primary-verba);
+  filter: brightness(1.1);
+}
+
+.verba-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Layout utilities */
+.verba-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.verba-content-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+/* Typography */
+.verba-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--color-text-verba);
+  margin-bottom: 0.5rem;
+}
+
+.verba-subtitle {
+  font-size: 1.125rem;
+  color: var(--color-text-alt-verba);
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .verba-sidebar {
+    display: none;
+  }
+
+  .verba-header {
+    padding: 1rem;
+  }
+
+  .verba-main-content {
+    padding: 1rem;
+  }
 }

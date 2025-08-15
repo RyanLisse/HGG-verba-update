@@ -14,20 +14,27 @@ from goldenverba.server.types import FileConfig
 
 class UpstageDocumentParseReader(Reader):
     """
-    Upstage Document Parse API Reader for converting documents to structured HTML format.
+    Upstage Document Parse API Reader for converting documents to structured
+    HTML format.
     """
 
     def __init__(self):
         super().__init__()
         self.requires_env = ["UPSTAGE_API_KEY"]
         self.name = "Upstage Parser"
-        self.description = "Uses the Upstage Document Parse API to convert documents into structured HTML format"
+        self.description = (
+            "Uses the Upstage Document Parse API to convert documents into "
+            "structured HTML format"
+        )
 
         if os.getenv("UPSTAGE_API_KEY") is None:
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="Set your Upstage API Key here or set it as an environment variable `UPSTAGE_API_KEY`",
+                description=(
+                    "Set your Upstage API Key here or set it as an "
+                    "environment variable `UPSTAGE_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -71,25 +78,25 @@ class UpstageDocumentParseReader(Reader):
         )
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    api_url, headers=headers, data=file_data
-                ) as response:
-                    response.raise_for_status()
-                    json_response = await response.json()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(api_url, headers=headers, data=file_data) as response,
+            ):
+                response.raise_for_status()
+                json_response = await response.json()
 
-                    if "content" not in json_response:
-                        raise ValueError("API error: Invalid response format")
+                if "content" not in json_response:
+                    raise ValueError("API error: Invalid response format")
 
-                    # Extract text content from HTML
-                    html_content = json_response["content"]["html"]
-                    # You might want to add HTML to text conversion here
-                    # For now, we'll use the HTML content directly
-                    return [create_document(html_content, fileConfig)]
+                # Extract text content from HTML
+                html_content = json_response["content"]["html"]
+                # You might want to add HTML to text conversion here
+                # For now, we'll use the HTML content directly
+                return [create_document(html_content, fileConfig)]
 
         except aiohttp.ClientError as e:
             raise Exception(
                 f"Upstage API request failed for {fileConfig.filename}: {e!s}"
-            )
+            ) from e
         except Exception as e:
-            raise Exception(f"Failed to process {fileConfig.filename}: {e!s}")
+            raise Exception(f"Failed to process {fileConfig.filename}: {e!s}") from e

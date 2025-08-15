@@ -1,0 +1,102 @@
+{
+  "project_name": "Verba Frontend",
+  "project_root": "/Volumes/Main SSD/CascadeProjects/experiments/HGG-verba-update/frontend",
+  "tech_stack": {
+    "language": ["TypeScript", "TSX", "CSS"],
+    "frameworks": ["Next.js 15", "React 19"],
+    "styling": ["Tailwind CSS 4", "DaisyUI"],
+    "ui_icons": ["react-icons", "lucide-react", "@radix-ui/*"],
+    "3d_optional": ["three", "@react-three/fiber", "@react-three/drei"],
+    "state_management": ["React state/hooks"],
+    "build": ["next dev", "next build", "next start"],
+    "lint_format": ["Biome"],
+    "testing": {
+      "unit": ["vitest"],
+      "e2e_visual": ["@playwright/test"]
+    }
+  },
+  "runtime_ports": {
+    "dev": 2025,
+    "e2e": 3025,
+    "prod": 8080
+  },
+  "important_scripts": {
+    "dev": "next dev -p 2025",
+    "start:test": "next start -p 3025",
+    "test:e2e": "playwright test",
+    "lint": "biome ci .",
+    "format": "biome format --write ."
+  },
+  "next_config": {
+    "output": "export",
+    "images": { "unoptimized": true },
+    "eslintDisabledDuringBuild": true
+  },
+  "major_pages_tabs": [
+    "CHAT",
+    "DOCUMENTS",
+    "ADD",
+    "SETTINGS",
+    "RAG"
+  ],
+  "key_paths": {
+    "pageRoot": "app/page.tsx",
+    "navbar": "app/components/Navigation/NavbarComponent.tsx",
+    "nav_button": "app/components/Navigation/NavButton.tsx",
+    "verba_button": "app/components/Navigation/VerbaButton.tsx",
+    "document_search": "app/components/Document/DocumentSearch.tsx",
+    "login": "app/components/Login/LoginView.tsx",
+    "api_helpers": "app/api.ts"
+  },
+  "selectors_for_tests": {
+    "layout_ready": ".verba-layout.opacity-100",
+    "doc_list": ".verba-document-list",
+    "doc_item": ".verba-document-item",
+    "chat_button_marker": ".verba-chat-button"
+  },
+  "network_endpoints_to_mock": [
+    "/api/health",
+    "/api/connect",
+    "/api/get_all_documents",
+    "https://api.github.com/repos/weaviate/verba"
+  ],
+  "playwright_setup": {
+    "baseURL": "http://localhost:3025",
+    "webServer": "next dev -p 3025",
+    "project": "chromium (Desktop Chrome)",
+    "trace": "on-first-retry",
+    "screenshot_baseline": "documents-view.png"
+  },
+  "feature_descriptions": [
+    {
+      "feature": "Navbar navigation",
+      "details": "Buttons for Chat, Documents, Import Data, Settings, and RAG; selected state styling via VerbaButton"
+    },
+    {
+      "feature": "Health/Connection gating",
+      "details": "UI waits on /api/health and /api/connect before showing main layout; then fades in (.verba-layout)"
+    },
+    {
+      "feature": "Documents view",
+      "details": "Sidebar with search/list, labels, pagination; content explorer for selected document"
+    },
+    {
+      "feature": "Chat view",
+      "details": "Input composer and messages area"
+    },
+    {
+      "feature": "Import Data & Settings",
+      "details": "Basic UI presence for uploads/config"
+    },
+    {
+      "feature": "RAG tab",
+      "details": "Presence and landing content"
+    }
+  ],
+  "acceptance_criteria_highlights": [
+    "Navbar shows 5 tabs and active state",
+    "Layout becomes .opacity-100 after connect",
+    ".verba-document-list renders items when mocked data available",
+    "Playwright captures full-page screenshot for Documents"
+  ]
+}

@@ -1,10 +1,10 @@
+import contextlib
+
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 
-try:
+with contextlib.suppress(Exception):
     from sentence_transformers import SentenceTransformer
-except Exception:
-    pass
 
 
 class SentenceTransformersEmbedder(Embedding):
@@ -32,12 +32,19 @@ class SentenceTransformersEmbedder(Embedding):
                 ],
             ),
         }
+        # cache for loaded model
+        self._model_cache = None
+        self._model_name = None
 
     async def vectorize(self, config: dict, content: list[str]) -> list[float]:
         try:
             model_name = config.get("Model").value
-            model = SentenceTransformer(model_name)
-            embeddings = model.encode(content).tolist()
+            # Lazy import & cache model instance
+            from sentence_transformers import SentenceTransformer
+            if self._model_cache is None or self._model_name != model_name:
+                self._model_cache = SentenceTransformer(model_name)
+                self._model_name = model_name
+            embeddings = self._model_cache.encode(content).tolist()
             return embeddings
         except Exception as e:
-            raise Exception(f"Failed to vectorize chunks: {e!s}")
+            raise Exception(f"Failed to vectorize chunks: {e!s}") from e

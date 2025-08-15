@@ -1,0 +1,47 @@
+name: Quality (uv + ruff + ty + pytest)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        shell: bash
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
+
+      - name: Install project (dev)
+        run: |
+          uv pip install -e .[dev]
+
+      - name: Ruff (lint)
+        run: |
+          uvx ruff check --output-format=github
+
+      - name: Ruff (format check)
+        run: |
+          uvx ruff format --check
+
+      - name: Ty (type check)
+        # Ty is in preview; do not fail the build initially. Switch to required later.
+        continue-on-error: true
+        run: |
+          uvx ty check
+
+      - name: Pytest
+        run: |
+          uvx pytest -q
+

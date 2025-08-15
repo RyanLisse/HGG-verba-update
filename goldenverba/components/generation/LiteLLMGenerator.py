@@ -20,7 +20,9 @@ class LiteLLMGenerator(Generator):
     def __init__(self):
         super().__init__()
         self.name = "LiteLLM"
-        self.description = "Use a LiteLLM proxy to generate answers across many providers"
+        self.description = (
+            "Use a LiteLLM proxy to generate answers across many providers"
+        )
         self.context_window = 10000
         self.requires_env = ["LITELLM_BASE_URL", "LITELLM_API_KEY"]
 
@@ -40,7 +42,9 @@ class LiteLLMGenerator(Generator):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="Set your LiteLLM API Key here or via env `LITELLM_API_KEY`",
+                description=(
+                    "Set your LiteLLM API Key here or via env `LITELLM_API_KEY`"
+                ),
                 values=[],
             )
         if os.getenv("LITELLM_BASE_URL") is None:
@@ -56,17 +60,17 @@ class LiteLLMGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ):
+        if conversation is None:
+            conversation = []
         system_message = config.get("System Message").value
         model = config.get("Model", {"value": "gpt-4o"}).value
 
         api_key = get_environment(
             config, "API Key", "LITELLM_API_KEY", "No LiteLLM API Key found"
         )
-        base_url = get_environment(
-            config, "URL", "LITELLM_BASE_URL", ""
-        )
+        base_url = get_environment(config, "URL", "LITELLM_BASE_URL", "")
         if base_url == "":
             raise Exception("Set LITELLM_BASE_URL or configure URL in the UI")
 
@@ -103,7 +107,10 @@ class LiteLLMGenerator(Generator):
                                 "finish_reason": choice.get("finish_reason"),
                             }
                         elif "finish_reason" in choice:
-                            yield {"message": "", "finish_reason": choice["finish_reason"]}
+                            yield {
+                                "message": "",
+                                "finish_reason": choice["finish_reason"],
+                            }
             except Exception as e:
                 msg.fail(f"LiteLLM stream error: {e!s}")
                 yield {"message": str(e), "finish_reason": "stop"}
@@ -119,7 +126,10 @@ class LiteLLMGenerator(Generator):
         messages.append(
             {
                 "role": "user",
-                "content": f"Answer this query: '{query}' with this provided context: {context}",
+                "content": (
+                    f"Answer this query: '{query}' with this provided context: "
+                    f"{context}"
+                ),
             }
         )
         return messages
@@ -129,16 +139,25 @@ class LiteLLMGenerator(Generator):
         try:
             if not token or not url:
                 return []
-            import requests
-
             headers = {"Authorization": f"Bearer {token}"}
-            response = requests.get(f"{url}/models", headers=headers, timeout=10)
-            response.raise_for_status()
-            return [
-                model["id"]
-                for model in response.json().get("data", [])
-                if "embedding" not in model["id"]
-            ]
+            try:
+                import asyncio
+                import aiohttp
+                async def _fetch():
+                    async with aiohttp.ClientSession() as s:
+                        async with s.get(
+                            f"{url}/models", headers=headers, timeout=10
+                        ) as r:
+                            r.raise_for_status()
+                            data = await r.json()
+                            return [
+                                m.get("id") for m in data.get("data", []) if isinstance(m, dict)
+                            ]
+                models = asyncio.run(_fetch())
+            except RuntimeError:
+                models = []
+            except Exception:
+                models = []
+            return [m for m in models if "embedding" not in m]
         except Exception:
             return []
-

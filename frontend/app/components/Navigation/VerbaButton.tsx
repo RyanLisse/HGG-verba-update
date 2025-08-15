@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React from "react";
-import { FaStar } from "react-icons/fa";
+import type React from 'react';
+import type { FaStar } from 'react-icons/fa';
 
-interface VerbaButtonProps {
+type VerbaButtonProps = {
   title?: string;
   Icon?: typeof FaStar;
   onClick?: (...args: unknown[]) => void;
@@ -12,7 +12,7 @@ interface VerbaButtonProps {
   disabled?: boolean;
   key?: string;
   className?: string;
-  type?: "button" | "submit" | "reset";
+  type?: 'button' | 'submit' | 'reset';
   selected?: boolean;
   selected_color?: string;
   selected_text_color?: string;
@@ -22,48 +22,45 @@ interface VerbaButtonProps {
   text_size?: string;
   icon_size?: number;
   onClickParams?: unknown[];
-}
+};
 
 const VerbaButton: React.FC<VerbaButtonProps> = ({
-  title = "",
-  key = "Button" + title,
+  title = '',
+  key = `Button${title}`,
   Icon,
   onClick = () => {},
   onMouseEnter = () => {},
   onMouseLeave = () => {},
   disabled = false,
-  className = "",
-  text_class_name = "",
+  className = '',
+  text_class_name = '',
   selected = false,
-  selected_color = "bg-button-verba",
-  selected_text_color = "text-text-verba-button",
-  text_size = "text-xs",
+  selected_color = 'bg-button-verba',
+  selected_text_color = 'text-text-verba-button',
+  text_size = 'text-xs',
   icon_size = 12,
-  type = "button",
+  type = 'button',
   loading = false,
   circle = false,
   onClickParams = [],
 }) => {
   return (
     <button
-      type={type}
-      key={key}
-      className={
-        className +
-        ` p-3 transition-all active:scale-95 scale-100 duration-300 flex gap-1 items-center justify-center ${circle ? "rounded-full" : "rounded-lg"} hover:bg-button-hover-verba hover:text-text-verba-button ${selected ? selected_color + " shadow-md " + selected_text_color : " bg-button-verba text-text-alt-verba-button"} `
-      }
-      onClick={(e) => onClick(e, ...onClickParams)}
+      className={`verba-nav-button ${selected ? 'active' : ''} ${circle ? 'rounded-full' : ''} ${className}`}
       disabled={disabled}
+      key={key}
+      onClick={(e) => onClick(e, ...onClickParams)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      type={type}
     >
       {loading ? (
-        <span className="text-text-verba-button loading loading-spinner loading-xs"></span>
+        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-text-verba-button border-t-transparent" />
       ) : (
         <>
-          {Icon && <Icon size={icon_size} className="w-[20px]" />}
+          {Icon && <Icon className="w-[20px]" size={icon_size} />}
           {title && (
-            <p title={title} className={text_size + " " + text_class_name}>
+            <p className={`${text_size} ${text_class_name}`} title={title}>
               {title}
             </p>
           )}

@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { Credentials, Suggestion } from "@/app/types";
-import { IoTrash, IoDocumentSharp, IoReload, IoCopy } from "react-icons/io5";
-import { FaWrench } from "react-icons/fa";
-import { fetchAllSuggestions, deleteSuggestion } from "@/app/api";
-import UserModalComponent from "../Navigation/UserModal";
-import { FaArrowAltCircleRight, FaArrowAltCircleLeft } from "react-icons/fa";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from 'date-fns';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from 'react-icons/fa';
+import { IoCopy, IoReload, IoTrash } from 'react-icons/io5';
+import { deleteSuggestion, fetchAllSuggestions } from '@/app/api';
+import type { Credentials, Suggestion } from '@/app/types';
+import UserModalComponent from '../Navigation/UserModal';
 
-import VerbaButton from "../Navigation/VerbaButton";
+import VerbaButton from '../Navigation/VerbaButton';
 
-interface SuggestionViewProps {
+type SuggestionViewProps = {
   credentials: Credentials;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const SuggestionView: React.FC<SuggestionViewProps> = ({
   credentials,
@@ -37,11 +37,11 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
   useEffect(() => {
     handleSuggestionFetch();
-  }, []);
+  }, [handleSuggestionFetch]);
 
   useEffect(() => {
     handleSuggestionFetch();
-  }, [page]);
+  }, [handleSuggestionFetch]);
 
   const nextPage = () => {
     if (page * pageSize <= totalCount) {
@@ -52,7 +52,7 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   };
 
   const previousPage = () => {
-    if (page == 1) {
+    if (page === 1) {
       setPage(1);
     } else {
       setPage((prev) => prev - 1);
@@ -70,9 +70,8 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
     try {
       const date = parseISO(timestamp);
       return formatDistanceToNow(date, { addSuffix: true });
-    } catch (error) {
-      console.error("Error parsing timestamp:", error);
-      return "Invalid date";
+    } catch (_error) {
+      return 'Invalid date';
     }
   };
 
@@ -83,41 +82,38 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
   const handleDelete = async (uuid: string) => {
     await deleteSuggestion(uuid, credentials);
     await handleSuggestionFetch();
-    addStatusMessage("Suggestion deleted", "SUCCESS");
+    addStatusMessage('Suggestion deleted', 'SUCCESS');
   };
 
   const handleCopy = (query: string) => {
-    navigator.clipboard.writeText(query).then(() => {
-      // You can add a toast notification here if you want
-      console.log("Copied to clipboard");
-    });
+    navigator.clipboard.writeText(query).then(() => {});
   };
 
   return (
-    <div className="flex flex-col size-full p-4">
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-2xl font-bold">Manage Suggestions ({totalCount})</p>
+    <div className="flex size-full flex-col p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="font-bold text-2xl">Manage Suggestions ({totalCount})</p>
         <VerbaButton
-          title="Refresh"
           className="max-w-min"
-          onClick={handleRefresh}
           Icon={IoReload}
+          onClick={handleRefresh}
+          title="Refresh"
         />
       </div>
-      <div className="flex-grow overflow-y-auto">
-        <div className="gap-4 flex flex-col p-4 text-text-verba">
+      <div className="grow overflow-y-auto">
+        <div className="flex flex-col gap-4 p-4 text-text-verba">
           <div className="flex flex-col gap-2">
-            {suggestions.map((suggestion, index) => (
+            {suggestions.map((suggestion) => (
               <div
-                key={"Suggestion" + suggestion.uuid}
-                className="flex items-center justify-between gap-2 p-4 border-2 bg-bg-alt-verba rounded-xl"
+                className="flex items-center justify-between gap-2 rounded-xl border-2 bg-bg-alt-verba p-4"
+                key={`Suggestion${suggestion.uuid}`}
               >
-                <div className="flex flex-col items-start justify-start gap-2 w-2/3">
-                  <p className="font-bold flex text-xs text-start text-text-alt-verba">
+                <div className="flex w-2/3 flex-col items-start justify-start gap-2">
+                  <p className="flex text-start font-bold text-text-alt-verba text-xs">
                     {getTimeAgo(suggestion.timestamp)}
                   </p>
                   <p
-                    className="text-sm text-text-verba truncate max-w-full"
+                    className="max-w-full truncate text-sm text-text-verba"
                     title={suggestion.query}
                   >
                     {suggestion.query}
@@ -125,23 +121,23 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
                 </div>
                 <div className="flex gap-2">
                   <VerbaButton
-                    onClick={() => handleCopy(suggestion.query)}
                     Icon={IoCopy}
+                    onClick={() => handleCopy(suggestion.query)}
                   />
                   <VerbaButton
-                    onClick={() =>
-                      openModal("remove_suggestion" + suggestion.uuid)
-                    }
                     Icon={IoTrash}
+                    onClick={() =>
+                      openModal(`remove_suggestion${suggestion.uuid}`)
+                    }
                   />
                 </div>
                 <UserModalComponent
-                  modal_id={"remove_suggestion" + suggestion.uuid}
-                  title={"Remove Suggestion"}
-                  text={"Do you want to remove this suggestion?"}
+                  modal_id={`remove_suggestion${suggestion.uuid}`}
+                  text={'Do you want to remove this suggestion?'}
+                  title={'Remove Suggestion'}
+                  triggerAccept={(value) => handleDelete(value as string)}
                   triggerString="Delete"
                   triggerValue={suggestion.uuid}
-                  triggerAccept={handleDelete}
                 />
               </div>
             ))}
@@ -149,21 +145,21 @@ const SuggestionView: React.FC<SuggestionViewProps> = ({
         </div>
       </div>
       {suggestions.length > 0 && (
-        <div className="flex justify-center items-center gap-2 p-3 bg-bg-alt-verba">
+        <div className="flex items-center justify-center gap-2 bg-bg-alt-verba p-3">
           <VerbaButton
-            title="Previous Page"
-            onClick={previousPage}
             className="btn-sm min-w-min max-w-[200px]"
-            text_class_name="text-xs"
             Icon={FaArrowAltCircleLeft}
-          />
-          <p className="text-xs flex text-text-verba">Page {page}</p>
-          <VerbaButton
-            title="Next Page"
-            onClick={nextPage}
-            className="btn-sm min-w-min max-w-[200px]"
+            onClick={previousPage}
             text_class_name="text-xs"
+            title="Previous Page"
+          />
+          <p className="flex text-text-verba text-xs">Page {page}</p>
+          <VerbaButton
+            className="btn-sm min-w-min max-w-[200px]"
             Icon={FaArrowAltCircleRight}
+            onClick={nextPage}
+            text_class_name="text-xs"
+            title="Next Page"
           />
         </div>
       )}

@@ -17,6 +17,13 @@ class OpenAIGenerator(Generator):
     OpenAI Generator.
     """
 
+    # Constants for duplicate strings
+    DEFAULT_BASE_URL = "https://api.openai.com/v1"
+    GPT_5 = "gpt-5"
+    GPT_5_MINI = "gpt-5-mini"
+    GPT_5_NANO = "gpt-5-nano"
+    GPT_5_CHAT_LATEST = "gpt-5-chat-latest"
+
     def __init__(self):
         super().__init__()
         self.name = "OpenAI"
@@ -26,15 +33,14 @@ class OpenAIGenerator(Generator):
         self.requires_env = ["OPENAI_API_KEY"]
 
         api_key = get_token("OPENAI_API_KEY")
-        base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        base_url = os.getenv("OPENAI_BASE_URL", self.DEFAULT_BASE_URL)
         models = self.get_models(api_key, base_url)
-        # Prefer GPT‑5 models if present, otherwise fall back to first
+        # Prefer GPT-5-mini as default, then other GPT-5 models
         preferred_defaults = [
-            "gpt-5.1",
-            "gpt-5.1-mini",
-            "gpt-5",
-            "gpt-4.1",
-            "gpt-4o",
+            self.GPT_5_MINI,
+            self.GPT_5,
+            self.GPT_5_NANO,
+            self.GPT_5_CHAT_LATEST,
         ]
         env_default = os.getenv("OPENAI_MODEL")
         default_model = (
@@ -59,7 +65,7 @@ class OpenAIGenerator(Generator):
         )
         self.config["Reasoning Effort"] = InputConfig(
             type="dropdown",
-            value="none",
+            value="medium",
             description="Optional reasoning effort for reasoning-capable models",
             values=["none", "low", "medium", "high"],
         )
@@ -68,13 +74,16 @@ class OpenAIGenerator(Generator):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your OpenAI API Key here or set it as environment variable `OPENAI_API_KEY`",
+                description=(
+                    "You can set your OpenAI API Key here or set it as environment "
+                    "variable `OPENAI_API_KEY`"
+                ),
                 values=[],
             )
         if os.getenv("OPENAI_BASE_URL") is None:
             self.config["URL"] = InputConfig(
                 type="text",
-                value="https://api.openai.com/v1",
+                value=self.DEFAULT_BASE_URL,
                 description="You can change the Base URL here if needed",
                 values=[],
             )
@@ -102,7 +111,7 @@ class OpenAIGenerator(Generator):
             config, "API Key", "OPENAI_API_KEY", "No OpenAI API Key found"
         )
         openai_url = get_environment(
-            config, "URL", "OPENAI_BASE_URL", "https://api.openai.com/v1"
+            config, "URL", "OPENAI_BASE_URL", self.DEFAULT_BASE_URL
         )
 
         messages = self.prepare_messages(query, context, conversation, system_message)
@@ -135,7 +144,8 @@ class OpenAIGenerator(Generator):
                         if response.status_code != 200:
                             # Fallback to Chat Completions for older deployments
                             msg.warn(
-                                f"Responses API returned {response.status_code}, falling back to Chat Completions"
+                                f"Responses API returned {response.status_code}, "
+                                f"falling back to Chat Completions"
                             )
                             async for item in self._chat_completions_stream(
                                 headers, openai_url, model, messages
@@ -157,18 +167,26 @@ class OpenAIGenerator(Generator):
 
                             # Handle Responses API event types
                             event_type = json_line.get("type")
-                            if event_type == "response.output_text.delta" and "delta" in json_line:
+                            if (
+                                event_type == "response.output_text.delta"
+                                and "delta" in json_line
+                            ):
                                 yield {
                                     "message": json_line["delta"],
                                     "finish_reason": None,
                                 }
                             # Reasoning streams (best-effort across variants)
-                            elif event_type in (
-                                "response.reasoning.delta",
-                                "response.reasoning_output_text.delta",
-                                "reasoning.output_text.delta",
-                            ) and "delta" in json_line:
-                                # Emit empty assistant text delta but include reasoning delta
+                            elif (
+                                event_type
+                                in (
+                                    "response.reasoning.delta",
+                                    "response.reasoning_output_text.delta",
+                                    "reasoning.output_text.delta",
+                                )
+                                and "delta" in json_line
+                            ):
+                                # Emit empty assistant text delta but include reasoning
+                                # delta
                                 yield {
                                     "message": "",
                                     "finish_reason": None,
@@ -182,7 +200,8 @@ class OpenAIGenerator(Generator):
                             ):
                                 yield {"message": "", "finish_reason": "stop"}
                             elif "choices" in json_line:
-                                # Some proxies still mimic Chat Completions under /responses
+                                # Some proxies still mimic Chat Completions under
+                                # /responses
                                 choice = json_line["choices"][0]
                                 if "delta" in choice and "content" in choice["delta"]:
                                     yield {
@@ -190,7 +209,10 @@ class OpenAIGenerator(Generator):
                                         "finish_reason": choice.get("finish_reason"),
                                     }
                                 elif "finish_reason" in choice:
-                                    yield {"message": "", "finish_reason": choice["finish_reason"]}
+                                    yield {
+                                        "message": "",
+                                        "finish_reason": choice["finish_reason"],
+                                    }
                 except Exception as e:
                     # If anything goes wrong, try Chat Completions as a safety net
                     msg.warn(f"Responses stream error: {e!s}; falling back")
@@ -207,33 +229,39 @@ class OpenAIGenerator(Generator):
 
     async def _chat_completions_stream(self, headers, base_url, model, messages):
         data = {"messages": messages, "model": model, "stream": True}
-        async with httpx.AsyncClient() as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient() as client,
+            client.stream(
                 "POST",
                 f"{base_url}/chat/completions",
                 json=data,
                 headers=headers,
                 timeout=None,
-            ) as response:
-                async for line in response.aiter_lines():
-                    if not line:
-                        continue
-                    if not line.startswith("data: "):
-                        continue
-                    if line.strip() == "data: [DONE]":
-                        break
-                    json_line = json.loads(line[6:])
-                    choice = json_line.get("choices", [{}])[0]
-                    if "delta" in choice and "content" in choice["delta"]:
-                        yield {
-                            "message": choice["delta"]["content"],
-                            "finish_reason": choice.get("finish_reason"),
-                        }
-                    elif "finish_reason" in choice:
-                        yield {"message": "", "finish_reason": choice["finish_reason"]}
+            ) as response,
+        ):
+            async for line in response.aiter_lines():
+                if not line:
+                    continue
+                if not line.startswith("data: "):
+                    continue
+                if line.strip() == "data: [DONE]":
+                    break
+                json_line = json.loads(line[6:])
+                choice = json_line.get("choices", [{}])[0]
+                if "delta" in choice and "content" in choice["delta"]:
+                    yield {
+                        "message": choice["delta"]["content"],
+                        "finish_reason": choice.get("finish_reason"),
+                    }
+                elif "finish_reason" in choice:
+                    yield {"message": "", "finish_reason": choice["finish_reason"]}
 
     def prepare_messages(
-        self, query: str, context: str, conversation: list[dict] | None, system_message: str
+        self,
+        query: str,
+        context: str,
+        conversation: list[dict] | None,
+        system_message: str,
     ) -> list[dict]:
         messages = [
             {
@@ -242,17 +270,28 @@ class OpenAIGenerator(Generator):
             }
         ]
 
-        for message in (conversation or []):
+        for message in conversation or []:
             # Support both dicts and simple objects
-            role = message.get("type") if isinstance(message, dict) else getattr(message, "type", None)
-            content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+            role = (
+                message.get("type")
+                if isinstance(message, dict)
+                else getattr(message, "type", None)
+            )
+            content = (
+                message.get("content")
+                if isinstance(message, dict)
+                else getattr(message, "content", None)
+            )
             if role and content is not None:
                 messages.append({"role": role, "content": content})
 
         messages.append(
             {
                 "role": "user",
-                "content": f"Answer this query: '{query}' with this provided context: {context}",
+                "content": (
+                    f"Answer this query: '{query}' with this provided context: "
+                    f"{context}"
+                ),
             }
         )
 
@@ -261,36 +300,39 @@ class OpenAIGenerator(Generator):
     def get_models(self, token: str, url: str) -> list[str]:
         """Fetch available chat/generation models from OpenAI API."""
         default_models = [
-            "gpt-5.1",
-            "gpt-5.1-mini",
-            "gpt-5",
-            "gpt-4.1",
-            "gpt-4o",
-            "gpt-3.5-turbo",
+            self.GPT_5,
+            self.GPT_5_MINI,
+            self.GPT_5_NANO,
+            self.GPT_5_CHAT_LATEST,
         ]
         try:
             if token is None:
                 return default_models
 
-            import requests
-
             headers = {"Authorization": f"Bearer {token}"}
-            response = requests.get(f"{url}/models", headers=headers, timeout=10)
-            response.raise_for_status()
-            models = [
-                model["id"]
-                for model in response.json()["data"]
-                if "embedding" not in model["id"]
-            ]
+            try:
+                import asyncio, aiohttp
+                async def _fetch():
+                    async with aiohttp.ClientSession() as s:
+                        async with s.get(f"{url}/models", headers=headers, timeout=10) as r:
+                            r.raise_for_status()
+                            data = await r.json()
+                            return [m.get("id") for m in data.get("data", []) if isinstance(m, dict)]
+                models = asyncio.run(_fetch())
+            except RuntimeError:
+                # Event loop running, skip remote call in sync context
+                models = default_models
+            except Exception:
+                models = default_models
+            models = [m for m in models if "embedding" not in m]
             if not models:
                 return default_models
-            # Place GPT‑5 models first if present
+            # Place GPT-5 models first if present
             priority = {
-                "gpt-5.1": 0,
-                "gpt-5.1-mini": 1,
-                "gpt-5": 2,
-                "gpt-4.1": 3,
-                "gpt-4o": 4,
+                self.GPT_5_MINI: 0,
+                self.GPT_5: 1,
+                self.GPT_5_NANO: 2,
+                self.GPT_5_CHAT_LATEST: 3,
             }
             models.sort(key=lambda m: priority.get(m, 100))
             return models

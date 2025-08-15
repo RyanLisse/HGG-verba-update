@@ -38,13 +38,11 @@ class JSONChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Chunk Size"].value)
 
         text_splitter = RecursiveJsonSplitter(max_chunk_size=units)
 
         for document in documents:
-
             json_obj = json.loads(document.content)
 
             # Skip if document already contains chunks
@@ -53,16 +51,16 @@ class JSONChunker(Chunker):
 
             char_end_i = -1
             for i, chunk in enumerate(text_splitter.split_text(json_obj)):
-
                 char_start_i = char_end_i + 1
                 char_end_i = char_start_i + len(chunk)
 
                 document.chunks.append(
                     Chunk(
                         content=chunk,
-                        chunk_id=i,
-                        start_i=None,  # not implemented as the splitter modifies the outputs
-                        end_i=None,
+                        chunk_id=str(i),
+                        start_i=0,  # not implemented as the splitter
+                        # modifies the outputs
+                        end_i=len(chunk),
                         content_without_overlap=chunk,
                     )
                 )

@@ -199,6 +199,43 @@ Below is a comprehensive list of the API keys and variables you may require:
 
 Verba provides flexibility in connecting to Weaviate instances based on your needs. You have three options:
 
+## Bundle Analyzer
+
+To inspect and optimize frontend bundles:
+
+- Run analyzer build:
+
+```
+cd frontend
+ANALYZE=true pnpm build
+```
+
+- Open reports in `.next/analyze/`:
+  - `client.html`: client bundle graph
+  - `edge.html`: edge runtime report (if present)
+  - `nodejs.html`: server bundle report
+
+Tips:
+- Keep large visualization libs (Three.js / Deck.GL) behind `dynamic(() => import(...), { ssr: false })`.
+- Avoid importing those libs at top of page components; keep them inside dynamically loaded child components.
+- Use `loading:` fallbacks for better UX while chunks load.
+
+## Performance Environment Variables
+
+- `VERBA_EMBED_CONCURRENCY` (default: 4)
+  - Max concurrent embedder requests during ingestion
+- `VERBA_WV_INSERT_BATCH` (default: 1000)
+  - Batch size for Weaviate `insert_many`
+- `VERBA_WV_FETCH_BATCH` (default: 250)
+  - Fetch batch size for vector/PCA pagination
+
+## Migration Notes
+
+- Model list fetching is now async-safe and resilient; defaults are used if remote endpoints are unavailable or unsafe to fetch synchronously
+- spaCy loading has been made lazier to reduce startup memory in some code paths
+- For Weaviate 5.x: see `docs/MIGRATION.md` for upgrade instructions and API checks
+
+
 1. **Local Deployment**: Use Weaviate Embedded which runs locally on your device (except Windows, choose the Docker/Cloud Deployment)
 2. **Docker Deployment**: Choose this option when you're running Verba's Dockerfile.
 3. **Cloud Deployment**: Use an existing Weaviate instance hosted on WCD to run Verba
@@ -277,7 +314,7 @@ pip install `.[huggingface]`
 
 To use Groq LPUs as generation engine, you need to get an API key from [Groq](https://console.groq.com/keys).
 
-> Although you can provide it in the graphical interface when Verba is up, it is recommended to specify it as `GROQ_API_KEY` environment variable before you launch the application.  
+> Although you can provide it in the graphical interface when Verba is up, it is recommended to specify it as `GROQ_API_KEY` environment variable before you launch the application.
 > It will allow you to choose the generation model in an up-to-date available models list.
 
 ## Novita

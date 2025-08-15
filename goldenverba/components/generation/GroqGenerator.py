@@ -4,7 +4,6 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import aiohttp
-import requests
 from wasabi import msg
 
 from goldenverba.components.interfaces import Generator
@@ -19,7 +18,8 @@ DEFAULT_MODEL_LIST = [
     "llama3-70b-8192",
     "llama3-8b-8192",
     "mixtral-8x7b-32768",
-]  # offline Groq models list to show to user if they don't provide a GROQ_API_KEY as environment variable
+]  # offline Groq models list to show to user if they don't provide a
+# GROQ_API_KEY as environment variable
 # this list may need to be updated in the future
 
 
@@ -49,11 +49,15 @@ class GroqGenerator(Generator):
         )
 
         if env_api_key is None:
-            # if api key not set in environment variable, then provide input for Groq API key on the interface
+            # if api key not set in environment variable, then provide input for
+            # Groq API key on the interface
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Groq API Key here or set it as environment variable `GROQ_API_KEY`",
+                description=(
+                    "You can set your Groq API Key here or set it as environment "
+                    "variable `GROQ_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -62,8 +66,10 @@ class GroqGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict[str, Any]] = [],
+        conversation: list[dict[str, Any]] | None = None,
     ) -> AsyncGenerator[dict, None]:
+        if conversation is None:
+            conversation = []
         model = config.get("Model").value
         api_key = get_environment(
             config, "API Key", "GROQ_API_KEY", "No Groq API Key found"
@@ -90,19 +96,21 @@ class GroqGenerator(Generator):
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     self.url + "/chat/completions", json=data, headers=headers
-                ) as response:
-                    if response.status == 200:
-                        async for line in response.content:
-                            if line.strip():
-                                yield GroqGenerator._process_response(line)
-                    else:
-                        error_message = await response.text()
-                        yield GroqGenerator._error_response(
-                            f"HTTP Error {response.status}: {error_message}"
-                        )
+                ) as response,
+            ):
+                if response.status == 200:
+                    async for line in response.content:
+                        if line.strip():
+                            yield GroqGenerator._process_response(line)
+                else:
+                    error_message = await response.text()
+                    yield GroqGenerator._error_response(
+                        f"HTTP Error {response.status}: {error_message}"
+                    )
 
         except Exception as e:
             yield self._error_response(str(e))
@@ -125,7 +133,10 @@ class GroqGenerator(Generator):
             ],
             {
                 "role": "user",
-                "content": f"With this provided context: {context} Please answer this query: {query}",
+                "content": (
+                    f"With this provided context: {context} Please answer this "
+                    f"query: {query}"
+                ),
             },
         ]
         return messages
@@ -156,7 +167,8 @@ class GroqGenerator(Generator):
             }
         except json.JSONDecodeError as e:
             msg.fail(
-                f"Error \"{e}\" while processing Groq JSON response : \"\"\"{line.decode('utf-8')}\"\"\""
+                f'Error "{e}" while processing Groq JSON response : '
+                f'"""{line.decode("utf-8")}"""'
             )
             raise e
 
@@ -173,12 +185,22 @@ def get_models(url: str, api_key: str) -> list[str]:
     """
     try:
         headers = {"Authorization": f"Bearer {api_key}"}
-        response = requests.get(url + "models", headers=headers)
-        models = [
-            model.get("id")
-            for model in response.json().get("data")
-            if model.get("active") is True
-        ]
+        try:
+            import asyncio
+            import aiohttp
+            async def _fetch():
+                async with aiohttp.ClientSession() as s:
+                    async with s.get(url + "models", headers=headers, timeout=10) as r:
+                        r.raise_for_status()
+                        data = await r.json()
+                        return [
+                            m.get("id") for m in data.get("data", []) if m.get("active") is True
+                        ]
+            models = asyncio.run(_fetch())
+        except RuntimeError:
+            models = DEFAULT_MODEL_LIST
+        except Exception:
+            models = DEFAULT_MODEL_LIST
         models.sort()
         models = filter_models(models)
         if len(models) == 0:
@@ -192,7 +214,8 @@ def get_models(url: str, api_key: str) -> list[str]:
 def filter_models(models: list[str]) -> list[str]:
     """
     Filters out models that are not LLMs
-    (As Groq API doesn't provide a way to identify them, this function will probably evolve with custom filtering rules)
+    (As Groq API doesn't provide a way to identify them, this function will
+    probably evolve with custom filtering rules)
     """
 
     def is_valid_model(model):

@@ -37,12 +37,10 @@ class SentenceChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Sentences"].value)
         overlap = int(config["Overlap"].value)
 
         for document in documents:
-
             doc = document.spacy_doc
 
             # Skip if document already contains chunks
@@ -56,7 +54,7 @@ class SentenceChunker(Chunker):
                 document.chunks.append(
                     Chunk(
                         content=document.content,
-                        chunk_id=0,
+                        chunk_id="0",
                         start_i=0,
                         end_i=len(document.content),
                         content_without_overlap=document.content,
@@ -66,7 +64,8 @@ class SentenceChunker(Chunker):
 
             if overlap >= units:
                 msg.warn(
-                    f"Overlap value is greater than unit (Units {config['Sentences'].value}/ Overlap {config['Overlap'].value})"
+                    f"Overlap value is greater than unit (Units "
+                    f"{config['Sentences'].value}/ Overlap {config['Overlap'].value})"
                 )
                 overlap = units - 1
 
@@ -74,7 +73,6 @@ class SentenceChunker(Chunker):
             split_id_counter = 0
             char_end_i = -1
             while i < len(sentences):
-
                 # index at the sentence level
                 start_i = i
                 end_i = min(i + units, len(sentences))
@@ -86,13 +84,15 @@ class SentenceChunker(Chunker):
                 # need to convert to index at the character level
                 char_start_i = char_end_i + 1
                 if i > 0:
-                    char_start_i -= sum([len(s) for s in sentences[start_i:(start_i + overlap)]]) + 1
+                    char_start_i -= (
+                        sum([len(s) for s in sentences[start_i : (start_i + overlap)]])
+                        + 1
+                    )
                 char_end_i = char_start_i + len(chunk_text)
-
 
                 doc_chunk = Chunk(
                     content=chunk_text,
-                    chunk_id=split_id_counter,
+                    chunk_id=str(split_id_counter),
                     start_i=char_start_i,
                     end_i=char_end_i,
                     content_without_overlap=chunk_text_without_overlap,

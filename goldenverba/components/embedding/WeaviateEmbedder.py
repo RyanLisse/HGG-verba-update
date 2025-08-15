@@ -8,11 +8,13 @@ from goldenverba.components.util import get_environment
 
 
 class WeaviateEmbedder(Embedding):
-
     def __init__(self):
         super().__init__()
         self.name = "Weaviate"
-        self.description = "Vectorizes documents and queries using Weaviate's In-House Embedding Service."
+        self.description = (
+            "Vectorizes documents and queries using Weaviate's "
+            "In-House Embedding Service."
+        )
         models = ["Embedding Service"]
 
         api_key = os.getenv("EMBEDDING_SERVICE_KEY")
@@ -29,23 +31,27 @@ class WeaviateEmbedder(Embedding):
             ),
         }
 
-        if api_key == None:
+        if api_key is None:
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="Weaviate Embedding Service Key (or set EMBEDDING_SERVICE_KEY env var)",
+                description=(
+                    "Weaviate Embedding Service Key "
+                    "(or set EMBEDDING_SERVICE_KEY env var)"
+                ),
                 values=[],
             )
         if base_url == "":
             self.config["URL"] = InputConfig(
                 type="text",
                 value="",  # Use empty string as default value
-                description="Weaviate Embedding Service URL (if different from default)",
+                description=(
+                    "Weaviate Embedding Service URL (if different from default)"
+                ),
                 values=[],
             )
 
     async def vectorize(self, config: dict, content: list[str]) -> list[float]:
-
         api_key = get_environment(
             config,
             "API Key",
@@ -63,11 +69,13 @@ class WeaviateEmbedder(Embedding):
 
         data = {"is_search_query": False, "texts": content}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
                 base_url + path, json=data, headers={"Authorization": f"{api_key}"}
-            ) as response:
-                response.raise_for_status()
-                data = await response.json()
-                embeddings = data.get("embeddings", [])
-                return embeddings
+            ) as response,
+        ):
+            response.raise_for_status()
+            data = await response.json()
+            embeddings = data.get("embeddings", [])
+            return embeddings

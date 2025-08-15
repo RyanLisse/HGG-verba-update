@@ -2,12 +2,12 @@ import json
 import os
 
 import aiohttp
-import requests
 from wasabi import msg
 
 from goldenverba.components.interfaces import Embedding
 from goldenverba.components.types import InputConfig
 from goldenverba.components.util import get_environment, get_token
+from goldenverba.components.http_client import CohereAsyncSafeModelManager
 
 
 class CohereEmbedder(Embedding):
@@ -20,7 +20,8 @@ class CohereEmbedder(Embedding):
         self.name = "Cohere"
         self.description = "Vectorizes documents and queries using Cohere"
         self.url = os.getenv("COHERE_BASE_URL", "https://api.cohere.com/v1")
-        models = get_models(self.url, get_token("COHERE_API_KEY", None), "embed")
+        self._model_manager = CohereAsyncSafeModelManager()
+        models = self._model_manager.get_models_safe(get_token("COHERE_API_KEY", None), self.url, "embed")
 
         self.config["Model"] = InputConfig(
             type="dropdown",
@@ -33,7 +34,10 @@ class CohereEmbedder(Embedding):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Cohere API Key here or set it as environment variable `COHERE_API_KEY`",
+                description=(
+                    "You can set your Cohere API Key here or set it as "
+                    "environment variable `COHERE_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -70,28 +74,10 @@ class CohereEmbedder(Embedding):
 
 
 def get_models(url: str, token: str, model_type: str):
-    try:
-        if token is None or token == "":
-            return [
-                "embed-english-v3.0",
-                "embed-multilingual-v3.0",
-                "embed-english-light-v3.0",
-                "embed-multilingual-light-v3.0",
-            ]
-        headers = {"Authorization": f"bearer {token}"}
-        response = requests.get(url + "/models", headers=headers)
-        data = response.json()
-        if "models" in data:
-            return [
-                model["name"]
-                for model in data["models"]
-                if model_type in model["endpoints"]
-            ]
-    except Exception as e:
-        msg.warn(f"Couldn't fetch models from Cohere endpoint: {e}")
-        return [
-            "embed-english-v3.0",
-            "embed-multilingual-v3.0",
-            "embed-english-light-v3.0",
-            "embed-multilingual-light-v3.0",
-        ]
+    """Fetch available models from Cohere API.
+    
+    This function is kept for backward compatibility but now uses
+    the async-safe model manager internally.
+    """
+    model_manager = CohereAsyncSafeModelManager()
+    return model_manager.get_models_safe(token, url, model_type)

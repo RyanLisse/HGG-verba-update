@@ -83,15 +83,18 @@ class VoyageAIEmbedder(Embedding):
                     embeddings = [item["embedding"] for item in data["data"]]
                     if len(embeddings) != len(content):
                         raise ValueError(
-                            f"Mismatch in embedding count: got {len(embeddings)}, expected {len(content)}"
+                            f"Mismatch in embedding count: got {len(embeddings)}, "
+                            f"expected {len(content)}"
                         )
 
                     return embeddings
 
             except aiohttp.ClientError as e:
                 if isinstance(e, aiohttp.ClientResponseError) and e.status == 429:
-                    raise Exception("Rate limit exceeded. Waiting before retrying...")
-                raise Exception(f"API request failed: {e!s}")
+                    raise Exception(
+                        "Rate limit exceeded. Waiting before retrying..."
+                    ) from e
+                raise Exception(f"API request failed: {e!s}") from e
 
             except Exception as e:
                 msg.fail(f"Unexpected error: {type(e).__name__} - {e!s}")

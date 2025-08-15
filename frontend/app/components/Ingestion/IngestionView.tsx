@@ -1,27 +1,28 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import FileSelectionView from "./FileSelectionView";
-import ConfigurationView from "./ConfigurationView";
-import {
-  FileMap,
-  StatusReport,
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type {
   CreateNewDocument,
-  FileData,
   Credentials,
-} from "@/app/types";
-import { RAGConfig } from "@/app/types";
-import { getImportWebSocketApiHost } from "@/app/util";
+  FileData,
+  FileMap,
+  RAGConfig,
+  StatusReport,
+} from '@/app/types';
+import { getImportWebSocketApiHost } from '@/app/util';
+import ConfigurationView from './ConfigurationView';
+import FileSelectionView from './FileSelectionView';
 
-interface IngestionViewProps {
+type IngestionViewProps = {
   credentials: Credentials;
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const IngestionView: React.FC<IngestionViewProps> = ({
   credentials,
@@ -31,11 +32,63 @@ const IngestionView: React.FC<IngestionViewProps> = ({
 }) => {
   const [fileMap, setFileMap] = useState<FileMap>({});
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
-  const [reconnect, setReconnect] = useState(false);
+  const [_reconnect, setReconnect] = useState(false);
   const [socket, setSocket] = useState<WebSocket | null>(null);
 
-  const [socketStatus, setSocketStatus] = useState<"ONLINE" | "OFFLINE">(
-    "OFFLINE"
+  const [socketStatus, setSocketStatus] = useState<'ONLINE' | 'OFFLINE'>(
+    'OFFLINE'
+  );
+
+  const setSocketErrorStatus = useCallback(() => {
+    setFileMap((prevFileMap) => {
+      if (fileMap) {
+        const newFileMap = { ...prevFileMap };
+        for (const fileMapKey in newFileMap) {
+          const fileData = newFileMap[fileMapKey];
+          if (
+            fileData &&
+            fileData.status !== 'DONE' &&
+            fileData.status !== 'ERROR' &&
+            fileData.status !== 'READY'
+          ) {
+            fileData.status = 'ERROR';
+            fileData.status_report.ERROR = {
+              fileID: fileMapKey,
+              status: 'ERROR',
+              message: 'Connection was interrupted',
+              took: 0,
+            };
+          }
+        }
+        return newFileMap;
+      }
+      return prevFileMap;
+    });
+  }, [fileMap]);
+
+  const updateStatus = useCallback(
+    (data: StatusReport) => {
+      if (data.status === 'DONE') {
+        addStatusMessage(`File ${data.fileID} imported`, 'SUCCESS');
+      }
+      if (data.status === 'ERROR') {
+        addStatusMessage(`File ${data.fileID} import failed`, 'ERROR');
+      }
+      setFileMap((prevFileMap) => {
+        if (data && data.fileID in prevFileMap) {
+          const newFileData: FileData = JSON.parse(
+            JSON.stringify(prevFileMap[data.fileID])
+          );
+          const newFileMap: FileMap = { ...prevFileMap };
+          newFileData.status = data.status;
+          newFileData.status_report[data.status] = data;
+          newFileMap[data.fileID] = newFileData;
+          return newFileMap;
+        }
+        return prevFileMap;
+      });
+    },
+    [addStatusMessage]
   );
 
   useEffect(() => {
@@ -48,50 +101,47 @@ const IngestionView: React.FC<IngestionViewProps> = ({
     const localSocket = new WebSocket(socketHost);
 
     localSocket.onopen = () => {
-      console.log("Import WebSocket connection opened to " + socketHost);
-      setSocketStatus("ONLINE");
+      setSocketStatus('ONLINE');
     };
 
     localSocket.onmessage = (event) => {
-      setSocketStatus("ONLINE");
+      setSocketStatus('ONLINE');
       try {
         const data: StatusReport | CreateNewDocument = JSON.parse(event.data);
-        if ("new_file_id" in data) {
+        if ('new_file_id' in data) {
           setFileMap((prevFileMap) => {
             const newFileMap: FileMap = { ...prevFileMap };
-            newFileMap[data.new_file_id] = {
-              ...newFileMap[data.original_file_id],
-              fileID: data.new_file_id,
-              filename: data.filename,
-              block: true,
-            };
+            const originalFile = newFileMap[data.original_file_id];
+            if (originalFile) {
+              newFileMap[data.new_file_id] = {
+                ...originalFile,
+                fileID: data.new_file_id,
+                filename: data.filename,
+                block: true,
+                overwrite: originalFile.overwrite,
+              };
+            }
             return newFileMap;
           });
         } else {
           updateStatus(data);
         }
-      } catch (e) {
-        console.error("Received data is not valid JSON:", event.data);
+      } catch {
         return;
       }
     };
 
-    localSocket.onerror = (error) => {
-      console.error("Import WebSocket Error:", error);
-      setSocketStatus("OFFLINE");
+    localSocket.onerror = (_error) => {
+      setSocketStatus('OFFLINE');
       setSocketErrorStatus();
       setReconnect((prev) => !prev);
     };
 
     localSocket.onclose = (event) => {
-      setSocketStatus("OFFLINE");
+      setSocketStatus('OFFLINE');
       setSocketErrorStatus();
       if (event.wasClean) {
-        console.log(
-          `Import WebSocket connection closed cleanly, code=${event.code}, reason=${event.reason}`
-        );
       } else {
-        console.error("WebSocket connection died");
       }
       setReconnect((prev) => !prev);
     };
@@ -103,57 +153,10 @@ const IngestionView: React.FC<IngestionViewProps> = ({
         localSocket.close();
       }
     };
-  }, [reconnect]);
+  }, [setSocketErrorStatus, updateStatus]);
 
   const reconnectToVerba = () => {
     setReconnect((prevState) => !prevState);
-  };
-
-  const setSocketErrorStatus = () => {
-    setFileMap((prevFileMap) => {
-      if (fileMap) {
-        const newFileMap = { ...prevFileMap };
-        for (const fileMapKey in newFileMap) {
-          if (
-            newFileMap[fileMapKey].status != "DONE" &&
-            newFileMap[fileMapKey].status != "ERROR" &&
-            newFileMap[fileMapKey].status != "READY"
-          ) {
-            newFileMap[fileMapKey].status = "ERROR";
-            newFileMap[fileMapKey].status_report["ERROR"] = {
-              fileID: fileMapKey,
-              status: "ERROR",
-              message: "Connection was interrupted",
-              took: 0,
-            };
-          }
-        }
-        return newFileMap;
-      }
-      return prevFileMap;
-    });
-  };
-
-  const updateStatus = (data: StatusReport) => {
-    if (data.status === "DONE") {
-      addStatusMessage("File " + data.fileID + " imported", "SUCCESS");
-    }
-    if (data.status === "ERROR") {
-      addStatusMessage("File " + data.fileID + " import failed", "ERROR");
-    }
-    setFileMap((prevFileMap) => {
-      if (data && data.fileID in prevFileMap) {
-        const newFileData: FileData = JSON.parse(
-          JSON.stringify(prevFileMap[data.fileID])
-        );
-        const newFileMap: FileMap = { ...prevFileMap };
-        newFileData.status = data.status;
-        newFileData.status_report[data.status] = data;
-        newFileMap[data.fileID] = newFileData;
-        return newFileMap;
-      }
-      return prevFileMap;
-    });
   };
 
   const setInitialStatus = (fileID: string) => {
@@ -163,7 +166,7 @@ const IngestionView: React.FC<IngestionViewProps> = ({
           JSON.stringify(prevFileMap[fileID])
         );
         const newFileMap: FileMap = { ...prevFileMap };
-        newFileData.status = "WAITING";
+        newFileData.status = 'WAITING';
         if (Object.entries(newFileData.status_report).length > 0) {
           newFileData.status_report = {};
         }
@@ -175,27 +178,29 @@ const IngestionView: React.FC<IngestionViewProps> = ({
   };
 
   const importSelected = () => {
-    addStatusMessage("Importing selected file", "INFO");
-    if (
-      selectedFileData &&
-      ["READY", "DONE", "ERROR"].includes(fileMap[selectedFileData].status) &&
-      !fileMap[selectedFileData].block
-    ) {
-      sendDataBatches(
-        JSON.stringify(fileMap[selectedFileData]),
-        selectedFileData
-      );
+    addStatusMessage('Importing selected file', 'INFO');
+    if (selectedFileData) {
+      const fileData = fileMap[selectedFileData];
+      if (
+        fileData &&
+        ['READY', 'DONE', 'ERROR'].includes(fileData.status) &&
+        !fileData.block
+      ) {
+        sendDataBatches(JSON.stringify(fileData), selectedFileData);
+      }
     }
   };
 
   const importAll = () => {
-    addStatusMessage("Importing all files", "INFO");
+    addStatusMessage('Importing all files', 'INFO');
     for (const fileID in fileMap) {
+      const fileData = fileMap[fileID];
       if (
-        ["READY", "DONE", "ERROR"].includes(fileMap[fileID].status) &&
-        !fileMap[fileID].block
+        fileData &&
+        ['READY', 'DONE', 'ERROR'].includes(fileData.status) &&
+        !fileData.block
       ) {
-        sendDataBatches(JSON.stringify(fileMap[fileID]), fileID);
+        sendDataBatches(JSON.stringify(fileData), fileID);
       }
     }
   };
@@ -220,53 +225,52 @@ const IngestionView: React.FC<IngestionViewProps> = ({
       batches.forEach((chunk, order) => {
         socket.send(
           JSON.stringify({
-            chunk: chunk,
+            chunk,
             isLastChunk: order === totalBatches - 1,
             total: totalBatches,
-            order: order,
-            fileID: fileID,
-            credentials: credentials,
+            order,
+            fileID,
+            credentials,
           })
         );
       });
     } else {
-      console.error("WebSocket is not open. ReadyState:", socket?.readyState);
       setReconnect((prevState) => !prevState);
     }
   };
 
   return (
-    <div className="flex justify-center gap-3 h-[80vh] ">
+    <div className="flex h-[80vh] justify-center gap-3">
       <div
-        className={`${selectedFileData ? "hidden md:flex md:w-[45vw]" : "w-full md:w-[45vw] md:flex"}`}
+        className={`${selectedFileData ? 'hidden md:flex md:w-[45vw]' : 'w-full md:flex md:w-[45vw]'}`}
       >
         <FileSelectionView
-          fileMap={fileMap}
           addStatusMessage={addStatusMessage}
-          setFileMap={setFileMap}
-          RAGConfig={RAGConfig}
-          setRAGConfig={setRAGConfig}
-          selectedFileData={selectedFileData}
-          setSelectedFileData={setSelectedFileData}
-          importSelected={importSelected}
+          fileMap={fileMap}
           importAll={importAll}
-          socketStatus={socketStatus}
+          importSelected={importSelected}
+          RAGConfig={RAGConfig}
           reconnect={reconnectToVerba}
+          selectedFileData={selectedFileData}
+          setFileMap={setFileMap}
+          setRAGConfig={setRAGConfig}
+          setSelectedFileData={setSelectedFileData}
+          socketStatus={socketStatus}
         />
       </div>
 
       <div
-        className={`${selectedFileData ? "md:w-[55vw] w-full flex" : "hidden md:flex md:w-[55vw]"}`}
+        className={`${selectedFileData ? 'flex w-full md:w-[55vw]' : 'hidden md:flex md:w-[55vw]'}`}
       >
         {selectedFileData && (
           <ConfigurationView
             addStatusMessage={addStatusMessage}
-            selectedFileData={selectedFileData}
-            RAGConfig={RAGConfig}
             credentials={credentials}
-            setRAGConfig={setRAGConfig}
             fileMap={fileMap}
+            RAGConfig={RAGConfig}
+            selectedFileData={selectedFileData}
             setFileMap={setFileMap}
+            setRAGConfig={setRAGConfig}
             setSelectedFileData={setSelectedFileData}
           />
         )}

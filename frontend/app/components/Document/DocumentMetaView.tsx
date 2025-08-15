@@ -1,13 +1,14 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { VerbaDocument, Credentials } from "@/app/types";
-import { fetchSelectedDocument } from "@/app/api";
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { fetchSelectedDocument } from '@/app/api';
+import type { Credentials, VerbaDocument } from '@/app/types';
 
-interface DocumentMetaViewProps {
+type DocumentMetaViewProps = {
   selectedDocument: string;
   credentials: Credentials;
-}
+};
 
 const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
   selectedDocument,
@@ -16,18 +17,14 @@ const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
   const [isFetching, setIsFetching] = useState(true);
   const [document, setDocument] = useState<VerbaDocument | null>(null);
 
-  useEffect(() => {
-    handleFetchDocument();
-  }, [selectedDocument]);
-
-  const handleFetchDocument = async () => {
+  const handleFetchDocument = useCallback(async () => {
     try {
       setIsFetching(true);
 
       const data = await fetchSelectedDocument(selectedDocument, credentials);
 
       if (data) {
-        if (data.error !== "") {
+        if (data.error !== '') {
           setDocument(null);
           setIsFetching(false);
         } else {
@@ -35,67 +32,70 @@ const DocumentMetaView: React.FC<DocumentMetaViewProps> = ({
           setIsFetching(false);
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
+    } catch (_error) {
       setIsFetching(false);
     }
-  };
+  }, [selectedDocument, credentials]);
+
+  useEffect(() => {
+    handleFetchDocument();
+  }, [handleFetchDocument]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {isFetching ? (
-        <div className="flex items-center justify-center h-full">
-          <span className="loading loading-spinner loading-md text-text-verba bg-text-alt-verba"></span>
+        <div className="flex h-full items-center justify-center">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-foreground" />
         </div>
       ) : (
         document && (
-          <div className="bg-bg-alt-verba flex flex-col rounded-lg overflow-hidden h-full">
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+          <div className="flex h-full flex-col overflow-hidden rounded-lg bg-bg-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 Title
               </p>
               <p
-                className="text-text-verba truncate max-w-full"
+                className="max-w-full truncate text-text-verba"
                 title={document.title}
               >
                 {document.title}
               </p>
             </div>
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 Metadata
               </p>
-              <p className="text-text-verba max-w-full">{document.metadata}</p>
+              <p className="max-w-full text-text-verba">{document.metadata}</p>
             </div>
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 Extension
               </p>
-              <p className="text-text-verba max-w-full">{document.extension}</p>
+              <p className="max-w-full text-text-verba">{document.extension}</p>
             </div>
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 File Size
               </p>
-              <p className="text-text-verba max-w-full">{document.fileSize}</p>
+              <p className="max-w-full text-text-verba">{document.fileSize}</p>
             </div>
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 Source
               </p>
               <button
-                className="text-text-verba truncate max-w-full"
-                onClick={() => window.open(document.source, "_blank")}
+                className="max-w-full truncate text-text-verba"
+                onClick={() => window.open(document.source, '_blank')}
                 title={document.source}
               >
                 {document.source}
               </button>
             </div>
-            <div className="p-4 flex flex-col gap-2 items-start justify-start">
-              <p className="font-bold flex text-xs text-start text-text-alt-verba">
+            <div className="flex flex-col items-start justify-start gap-2 p-4">
+              <p className="flex text-start font-bold text-text-alt-verba text-xs">
                 Labels
               </p>
-              <p className="text-text-verba max-w-full">{document.labels}</p>
+              <p className="max-w-full text-text-verba">{document.labels}</p>
             </div>
           </div>
         )

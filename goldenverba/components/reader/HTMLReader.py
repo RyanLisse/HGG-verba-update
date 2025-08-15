@@ -173,9 +173,9 @@ class HTMLReader(Reader):
             return base64_content, len(content), html_content
 
         except aiohttp.ClientError as e:
-            raise Exception(f"Failed to fetch HTML content from URL: {e!s}")
+            raise Exception(f"Failed to fetch HTML content from URL: {e!s}") from e
         except ImportError as e:
-            raise Exception(f"Markdown conversion failed: {e!s}")
+            raise Exception(f"Markdown conversion failed: {e!s}") from e
 
     def extract_links(self, html_content: str, base_url: str) -> list[str]:
         """

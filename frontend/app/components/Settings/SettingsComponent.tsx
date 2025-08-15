@@ -1,32 +1,36 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { HexColorPicker } from 'react-colorful';
+import { FaCheckCircle } from 'react-icons/fa';
+import { MdCancel } from 'react-icons/md';
+import { updateThemeConfig } from '@/app/api';
+import VerbaButton from '@/app/components/Navigation/VerbaButton';
 import {
-  Theme,
-  Themes,
-  TextFieldSetting,
-  ImageFieldSetting,
-  CheckboxSetting,
-  ColorSetting,
-  SelectSetting,
-  NumberFieldSetting,
-  WeaviateTheme,
-  WCDTheme,
-  LightTheme,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/app/components/ui/select';
+import {
+  type CheckboxSetting,
+  type ColorSetting,
+  type Credentials,
   DarkTheme,
-  Credentials,
-} from "@/app/types";
+  type ImageFieldSetting,
+  LightTheme,
+  type NumberFieldSetting,
+  type SelectSetting,
+  type TextFieldSetting,
+  type Theme,
+  type Themes,
+  WCDTheme,
+  WeaviateTheme,
+} from '@/app/types';
 
-import VerbaButton from "@/app/components/Navigation/VerbaButton";
-
-import { HexColorPicker } from "react-colorful";
-
-import { FaCheckCircle } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
-
-import { updateThemeConfig } from "@/app/api";
-
-interface SettingsComponentProps {
+type SettingsComponentProps = {
   selectedTheme: Theme;
   themes: Themes;
   setThemes: React.Dispatch<React.SetStateAction<Themes>>;
@@ -34,9 +38,9 @@ interface SettingsComponentProps {
   credentials: Credentials;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const SettingsComponent: React.FC<SettingsComponentProps> = ({
   selectedTheme,
@@ -46,7 +50,7 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
   themes,
   addStatusMessage,
 }) => {
-  const [imageURL, setImageURL] = useState("");
+  const [imageURL, setImageURL] = useState('');
 
   const resetThemes = () => {
     setThemes({
@@ -56,29 +60,37 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
       WCD: WCDTheme,
     });
     setSelectedTheme(WeaviateTheme);
-    addStatusMessage("Themes reset", "SUCCESS");
+    addStatusMessage('Themes reset', 'SUCCESS');
   };
 
   const saveTheme = async () => {
     await updateThemeConfig(themes, selectedTheme, credentials);
-    addStatusMessage(`Changes to ${selectedTheme.theme_name} saved`, "SUCCESS");
+    addStatusMessage(`Changes to ${selectedTheme.theme_name} saved`, 'SUCCESS');
   };
 
-  const updateValue = (title: keyof Theme, value: string | number | boolean) => {
+  const updateValue = (
+    title: keyof Theme,
+    value: string | number | boolean
+  ) => {
     setSelectedTheme((prev: Theme) => {
       const setting = prev[title];
       if (isTextFieldSetting(setting)) {
         return { ...prev, [title]: { ...setting, text: value } };
-      } else if (isImageFieldSetting(setting)) {
+      }
+      if (isImageFieldSetting(setting)) {
         return { ...prev, [title]: { ...setting, src: value } };
-      } else if (isCheckboxSetting(setting)) {
+      }
+      if (isCheckboxSetting(setting)) {
         return { ...prev, [title]: { ...(setting as object), checked: value } };
-      } else if (isColorSetting(setting)) {
+      }
+      if (isColorSetting(setting)) {
         return { ...prev, [title]: { ...(setting as object), color: value } };
-      } else if (isSelectSetting(setting)) {
-        return { ...prev, [title]: { ...setting, value: value } };
-      } else if (isNumberFieldSetting(setting)) {
-        return { ...prev, [title]: { ...(setting as object), value: value } };
+      }
+      if (isSelectSetting(setting)) {
+        return { ...prev, [title]: { ...setting, value } };
+      }
+      if (isNumberFieldSetting(setting)) {
+        return { ...prev, [title]: { ...(setting as object), value } };
       }
       return prev;
     });
@@ -90,16 +102,16 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
       newThemes[selectedTheme.theme_name] = selectedTheme;
       return newThemes as Themes;
     });
-  }, [selectedTheme]);
+  }, [selectedTheme, setThemes]);
 
   const handleImageChange = (
     title: keyof Theme,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (typeof e.target?.result === "string") {
+        if (typeof e.target?.result === 'string') {
           updateValue(title, e.target.result);
         }
       };
@@ -108,198 +120,267 @@ const SettingsComponent: React.FC<SettingsComponentProps> = ({
   };
 
   // Type for all possible setting types
-  type ThemeSetting = TextFieldSetting | ImageFieldSetting | CheckboxSetting | ColorSetting | SelectSetting | NumberFieldSetting;
+  type ThemeSetting =
+    | TextFieldSetting
+    | ImageFieldSetting
+    | CheckboxSetting
+    | ColorSetting
+    | SelectSetting
+    | NumberFieldSetting;
 
   // Type guards
-  function isTextFieldSetting(setting: ThemeSetting): setting is TextFieldSetting {
-    return setting.type === "text";
+  function isTextFieldSetting(setting: unknown): setting is TextFieldSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'text'
+    );
   }
 
-  function isImageFieldSetting(setting: ThemeSetting): setting is ImageFieldSetting {
-    return setting.type === "image";
+  function isImageFieldSetting(setting: unknown): setting is ImageFieldSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'image'
+    );
   }
 
-  function isCheckboxSetting(setting: ThemeSetting): setting is CheckboxSetting {
-    return setting.type === "check";
+  function isCheckboxSetting(setting: unknown): setting is CheckboxSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'check'
+    );
   }
 
-  function isColorSetting(setting: ThemeSetting): setting is ColorSetting {
-    return setting.type === "color";
+  function isColorSetting(setting: unknown): setting is ColorSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'color'
+    );
   }
 
-  function isSelectSetting(setting: ThemeSetting): setting is SelectSetting {
-    return setting.type === "select";
+  function isSelectSetting(setting: unknown): setting is SelectSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'select'
+    );
   }
 
-  function isNumberFieldSetting(setting: ThemeSetting): setting is NumberFieldSetting {
-    return setting.type === "number";
+  function isNumberFieldSetting(
+    setting: unknown
+  ): setting is NumberFieldSetting {
+    return (
+      typeof setting === 'object' &&
+      setting !== null &&
+      'type' in setting &&
+      (setting as { type: string }).type === 'number'
+    );
+  }
+
+  // Helper function to safely get theme setting
+  function getThemeSetting(theme: Theme, title: keyof Theme): unknown {
+    return theme[title];
   }
 
   const renderSettingComponent = (
     title: keyof Theme,
     setting_type: ThemeSetting
   ) => {
+    const currentSetting = getThemeSetting(selectedTheme, title);
+
     return (
       <div key={title}>
-        <div className="flex gap-3 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-3 text-text-verba">
           <p className="flex min-w-[8vw]">{setting_type.description}</p>
-          {setting_type.type === "text" && (
-            <label className="input flex items-center gap-2 w-full border-none bg-bg-verba">
-              <input
-                type="text"
-                className="grow w-full"
-                placeholder={title}
-                value={(selectedTheme as any)[title].text}
-                onChange={(e) => updateValue(title, e.target.value)}
-              />
-            </label>
-          )}
-          {setting_type.type === "select" && (
-            <select
-              value={(selectedTheme as any)[title].value}
-              onChange={(e) => {
-                updateValue(title, e.target.value);
-              }}
-              className="select bg-bg-verba"
-            >
-              {setting_type.options.map((template) => (
-                <option key={"Select_" + template} value={template}>
-                  {template}
-                </option>
-              ))}
-            </select>
-          )}
-          {setting_type.type === "color" && (
-            <div className="flex flex-col gap-1 h-[15vh] z-10">
-              <label className="input bg-bg-verba input-sm input-bordered flex items-center gap-2 w-full">
+          {setting_type.type === 'text' &&
+            isTextFieldSetting(currentSetting) && (
+              <label className="input flex w-full items-center gap-2 border-none bg-bg-verba">
                 <input
-                  type="text"
-                  className="grow"
+                  className="w-full grow"
+                  onChange={(e) => updateValue(title, e.target.value)}
                   placeholder={title}
-                  value={(selectedTheme as any)[title].color}
+                  type="text"
+                  value={currentSetting.text ?? ''}
+                />
+              </label>
+            )}
+          {setting_type.type === 'select' &&
+            isSelectSetting(currentSetting) && (
+              <Select
+                value={currentSetting.value ?? ''}
+                onValueChange={(value) => updateValue(title, value)}
+              >
+                <SelectTrigger className="w-full bg-bg-verba">
+                  <SelectValue placeholder="Select option" />
+                </SelectTrigger>
+                <SelectContent>
+                  {setting_type.options.map((template) => (
+                    <SelectItem key={`Select_${template}`} value={template}>
+                      {template}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          {setting_type.type === 'color' && isColorSetting(currentSetting) && (
+            <div className="z-10 flex h-[15vh] flex-col gap-1">
+              <label className="input input-sm input-bordered flex w-full items-center gap-2 bg-bg-verba">
+                <input
+                  className="grow"
                   onChange={(e) => {
                     updateValue(title, e.target.value);
                   }}
+                  placeholder={title}
+                  type="text"
+                  value={currentSetting.color ?? ''}
                 />
               </label>
               <HexColorPicker
-                color={(selectedTheme as any)[title].color}
                 className="z-1"
+                color={currentSetting.color ?? '#000000'}
                 onChange={(newColor: string) => {
                   updateValue(title, newColor);
                 }}
               />
             </div>
           )}
-          {setting_type.type === "image" && (
-            <div className="flex justify-between gap-4 w-full items-center">
-              <div className="flex-grow">
-                <label className="input flex items-center text-text-verba gap-2 w-full border-none bg-bg-verba">
-                  <input
-                    type="text"
-                    className="grow"
-                    placeholder="Enter image URL"
-                    value={imageURL}
-                    onChange={(e) => setImageURL(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="flex justify-between items-center gap-4">
-                <div className="flex flex-col gap-2">
-                  <VerbaButton
-                    title="Set Link"
-                    onClick={() => updateValue(title, imageURL)}
-                  />
-                  <VerbaButton
-                    title="Upload Image"
-                    onClick={() =>
-                      document.getElementById(`${title}ImageInput`)?.click()
-                    }
-                  />
-                  <input
-                    id={`${title}ImageInput`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange(title, e)}
-                    className="hidden"
-                  />
+          {setting_type.type === 'image' &&
+            isImageFieldSetting(currentSetting) && (
+              <div className="flex w-full items-center justify-between gap-4">
+                <div className="grow">
+                  <label className="input flex w-full items-center gap-2 border-none bg-bg-verba text-text-verba">
+                    <input
+                      className="grow"
+                      onChange={(e) => setImageURL(e.target.value)}
+                      placeholder="Enter image URL"
+                      type="text"
+                      value={imageURL}
+                    />
+                  </label>
                 </div>
-                {(selectedTheme as any)[title].src && (
-                  <img
-                    src={(selectedTheme as any)[title].src}
-                    alt={`${title} preview`}
-                    className="max-w-full max-h-32 rounded-xl"
-                  />
-                )}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-2">
+                    <VerbaButton
+                      onClick={() => updateValue(title, imageURL)}
+                      title="Set Link"
+                    />
+                    <VerbaButton
+                      onClick={() =>
+                        document.getElementById(`${title}ImageInput`)?.click()
+                      }
+                      title="Upload Image"
+                    />
+                    <input
+                      accept="image/*"
+                      className="hidden"
+                      id={`${title}ImageInput`}
+                      onChange={(e) => handleImageChange(title, e)}
+                      type="file"
+                    />
+                  </div>
+                  {currentSetting.src && (
+                    <img
+                      alt={`${title} preview`}
+                      className="max-h-32 max-w-full rounded-xl"
+                      src={currentSetting.src}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col size-full p-4">
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-2xl font-bold">Customize Theme</p>
-        <select
-          className="select bg-bg-verba"
+    <div className="flex size-full flex-col p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="font-bold text-2xl">Customize Theme</p>
+        <Select
           value={
             Object.keys(themes).find((key) => themes[key] === selectedTheme) ||
-            ""
+            ''
           }
-          onChange={(e) =>
-            setSelectedTheme(themes[e.target.value as keyof typeof themes])
-          }
+          onValueChange={(value) => {
+            const theme = themes[value as keyof typeof themes];
+            if (theme) {
+              setSelectedTheme(theme);
+            }
+          }}
         >
-          {Object.keys(themes).map((themeKey) => (
-            <option key={themeKey} value={themeKey}>
-              {themeKey}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-48 bg-bg-verba">
+            <SelectValue placeholder="Select theme" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.keys(themes).map((themeKey) => (
+              <SelectItem key={themeKey} value={themeKey}>
+                {themeKey}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="flex-grow overflow-y-auto">
-        <div className="gap-4 flex flex-col p-4">
+      <div className="grow overflow-y-auto">
+        <div className="flex flex-col gap-4 p-4">
           <p className="font-bold">Customize Logo</p>
           {Object.entries(selectedTheme)
-            .filter(([_, settingValue]) => settingValue.type === "image")
+            .filter(([, settingValue]) => isImageFieldSetting(settingValue))
             .map(([key, settingValue]) =>
-              renderSettingComponent(key, settingValue)
+              renderSettingComponent(
+                key as keyof Theme,
+                settingValue as ImageFieldSetting
+              )
             )}
-          <p className="font-bold mt-4">Customize Text</p>
+          <p className="mt-4 font-bold">Customize Text</p>
           {Object.entries(selectedTheme)
-            .filter(([_, settingValue]) => settingValue.type === "text")
+            .filter(([, settingValue]) => isTextFieldSetting(settingValue))
             .map(([key, settingValue]) =>
-              renderSettingComponent(key, settingValue)
+              renderSettingComponent(
+                key as keyof Theme,
+                settingValue as TextFieldSetting
+              )
             )}
-          <p className="font-bold mt-4">Customize Font</p>
+          <p className="mt-4 font-bold">Customize Font</p>
           {Object.entries(selectedTheme)
-            .filter(([_, settingValue]) => settingValue.type === "select")
+            .filter(([, settingValue]) => isSelectSetting(settingValue))
             .map(([key, settingValue]) =>
-              renderSettingComponent(key, settingValue)
+              renderSettingComponent(
+                key as keyof Theme,
+                settingValue as SelectSetting
+              )
             )}
-          <p className="font-bold mt-4">Customize Color</p>
+          <p className="mt-4 font-bold">Customize Color</p>
           {Object.entries(selectedTheme)
-            .filter(([_, settingValue]) => settingValue.type === "color")
+            .filter(([, settingValue]) => isColorSetting(settingValue))
             .map(([key, settingValue]) =>
-              renderSettingComponent(key, settingValue)
+              renderSettingComponent(
+                key as keyof Theme,
+                settingValue as ColorSetting
+              )
             )}
         </div>
       </div>
-      <div className="flex justify-end gap-2 mt-3">
+      <div className="mt-3 flex justify-end gap-2">
         <VerbaButton
-          title="Save"
-          onClick={saveTheme}
           className="max-w-min"
           Icon={FaCheckCircle}
+          onClick={saveTheme}
+          title="Save"
         />
         <VerbaButton
-          title="Reset"
-          onClick={resetThemes}
           className="max-w-min"
           Icon={MdCancel}
+          onClick={resetThemes}
+          title="Reset"
         />
       </div>
     </div>

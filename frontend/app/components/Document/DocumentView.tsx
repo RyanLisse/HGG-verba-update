@@ -1,21 +1,22 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import DocumentSearch from "./DocumentSearch";
-import DocumentExplorer from "./DocumentExplorer";
-import { Credentials, Theme, DocumentFilter } from "@/app/types";
+import type React from 'react';
+import { useState } from 'react';
+import type { Credentials, DocumentFilter, Theme } from '@/app/types';
+import DocumentExplorer from './DocumentExplorer';
+import DocumentSearch from './DocumentSearch';
 
-interface DocumentViewProps {
+type DocumentViewProps = {
   selectedTheme: Theme;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   credentials: Credentials;
   documentFilter: DocumentFilter[];
   setDocumentFilter: React.Dispatch<React.SetStateAction<DocumentFilter[]>>;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const DocumentView: React.FC<DocumentViewProps> = ({
   selectedTheme,
@@ -28,31 +29,31 @@ const DocumentView: React.FC<DocumentViewProps> = ({
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
 
   return (
-    <div className="flex justify-center gap-3 h-[80vh] ">
+    <div className="flex h-[80vh] justify-center gap-3">
       <div
-        className={`${selectedDocument ? "hidden md:flex md:w-[45vw]" : "w-full md:w-[45vw] md:flex"}`}
+        className={`${selectedDocument ? 'hidden md:flex md:w-[45vw]' : 'w-full md:flex md:w-[45vw]'}`}
       >
         <DocumentSearch
-          production={production}
           addStatusMessage={addStatusMessage}
-          setSelectedDocument={setSelectedDocument}
           credentials={credentials}
+          production={production}
           selectedDocument={selectedDocument}
+          setSelectedDocument={setSelectedDocument}
         />
       </div>
 
       <div
-        className={`${selectedDocument ? "md:w-[55vw] w-full flex" : "hidden md:flex md:w-[55vw]"}`}
+        className={`${selectedDocument ? 'flex w-full md:w-[55vw]' : 'hidden md:flex md:w-[55vw]'}`}
       >
         <DocumentExplorer
-          production={production}
-          credentials={credentials}
           addStatusMessage={addStatusMessage}
-          setSelectedDocument={setSelectedDocument}
-          selectedTheme={selectedTheme}
-          selectedDocument={selectedDocument}
+          credentials={credentials}
           documentFilter={documentFilter}
+          production={production}
+          selectedDocument={selectedDocument}
+          selectedTheme={selectedTheme}
           setDocumentFilter={setDocumentFilter}
+          setSelectedDocument={setSelectedDocument}
         />
       </div>
     </div>

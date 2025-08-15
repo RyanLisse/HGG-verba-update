@@ -1,43 +1,54 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { GoogleAnalytics } from "@next/third-parties/google";
-
+import { GoogleAnalytics } from '@next/third-parties/google';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useState } from 'react';
+// Utilities
+import { fetchHealth } from './api';
+import ChatView from './components/Chat/ChatView';
+import DocumentView from './components/Document/DocumentView';
+import IngestionView from './components/Ingestion/IngestionView';
+import GettingStartedComponent from './components/Login/GettingStarted';
 // Components
-import Navbar from "./components/Navigation/NavbarComponent";
-import DocumentView from "./components/Document/DocumentView";
-import IngestionView from "./components/Ingestion/IngestionView";
-import LoginView from "./components/Login/LoginView";
-import ChatView from "./components/Chat/ChatView";
-import SettingsView from "./components/Settings/SettingsView";
-import GettingStartedComponent from "./components/Login/GettingStarted";
-import StatusMessengerComponent from "./components/Navigation/StatusMessenger";
-
+import Navbar from './components/Navigation/NavbarComponent';
+import SettingsView from './components/Settings/SettingsView';
 // Types
 import {
-  Credentials,
-  RAGConfig,
-  Theme,
-  StatusMessage,
-  LightTheme,
-  Themes,
+  type Credentials,
   DarkTheme,
-  DocumentFilter,
+  type DocumentFilter,
+  LightTheme,
+  type RAGConfig,
+  type StatusMessage,
+  type Theme,
+  type Themes,
   WCDTheme,
   WeaviateTheme,
-} from "./types";
+} from './types';
+import { type FontKey, fonts } from './util';
 
-// Utilities
-import { fetchHealth } from "./api";
-import { fonts, FontKey } from "./util";
+// Dynamic imports for heavy components
+const LoginView = dynamic(() => import('./components/Login/LoginView'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex w-full justify-center p-6">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+    </div>
+  ),
+});
+
+const StatusMessengerComponent = dynamic(
+  () => import('./components/Navigation/StatusMessenger'),
+  { ssr: false }
+);
 
 export default function Home() {
   // Page States
-  const [currentPage, setCurrentPage] = useState("CHAT");
-  const [production, setProduction] = useState<"Local" | "Demo" | "Production">(
-    "Local"
+  const [currentPage, setCurrentPage] = useState('CHAT');
+  const [production, setProduction] = useState<'Local' | 'Demo' | 'Production'>(
+    'Local'
   );
-  const [gtag, setGtag] = useState("");
+  const [gtag, setGtag] = useState('');
 
   // Settings
   const [themes, setThemes] = useState<Themes>({
@@ -46,20 +57,22 @@ export default function Home() {
     Weaviate: WeaviateTheme,
     WCD: WCDTheme,
   });
-  const [selectedTheme, setSelectedTheme] = useState<Theme>(themes["Weaviate"]);
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(
+    () => themes.Weaviate ?? WeaviateTheme
+  );
 
-  const fontKey = selectedTheme.font.value as FontKey; // Safely cast if you're sure, or use a check
-  const fontClassName = fontKey ? fonts[fontKey]?.className || "" : "";
+  const fontKey = selectedTheme.font?.value as FontKey; // Safely cast with optional chaining
+  const fontClassName = fontKey ? fonts[fontKey]?.className || '' : '';
 
   // Login States
   const [isHealthy, setIsHealthy] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [credentials, setCredentials] = useState<Credentials>({
-    deployment: "Local",
-    url: "",
-    key: "",
-    default_deployment: "",
+    deployment: 'Local',
+    url: '',
+    key: '',
+    default_deployment: '',
   });
 
   // RAG Config
@@ -79,18 +92,16 @@ export default function Home() {
         setGtag(health_data.gtag);
         setIsHealthy(true);
         setCredentials({
-          deployment: "Local",
+          deployment: 'Local',
           url: health_data.deployments.WEAVIATE_URL_VERBA,
           key: health_data.deployments.WEAVIATE_API_KEY_VERBA,
           default_deployment: health_data.default_deployment,
         });
       } else {
-        console.warn("Could not retrieve health data");
         setIsHealthy(false);
         setIsLoggedIn(false);
       }
-    } catch (error) {
-      console.error("Error during initial fetch:", error);
+    } catch (_error) {
       setIsHealthy(false);
       setIsLoggedIn(false);
     }
@@ -98,7 +109,7 @@ export default function Home() {
 
   useEffect(() => {
     initialFetch();
-  }, []);
+  }, [initialFetch]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -108,68 +119,70 @@ export default function Home() {
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isLoggedIn]);
 
-  const isValidTheme = (theme: Theme): boolean => {
-    const requiredAttributes = [
-      "primary_color",
-      "secondary_color",
-      "warning_color",
-      "bg_color",
-      "bg_alt_color",
-      "text_color",
-      "text_alt_color",
-      "button_color",
-      "button_hover_color",
-      "button_text_color",
-      "button_text_alt_color",
-    ];
-    return requiredAttributes.every(
-      (attr) =>
-        typeof theme[attr as keyof Theme] === "object" &&
-        "color" in (theme[attr as keyof Theme] as object)
-    );
-  };
+  // Theme validation function - may be used in the future
+  // const isValidTheme = (theme: Theme): boolean => {
+  //   const requiredAttributes = [
+  //     "primary_color",
+  //     "secondary_color",
+  //     "warning_color",
+  //     "bg_color",
+  //     "bg_alt_color",
+  //     "text_color",
+  //     "text_alt_color",
+  //     "button_color",
+  //     "button_hover_color",
+  //     "button_text_color",
+  //     "button_text_alt_color",
+  //   ];
+  //   return requiredAttributes.every(
+  //     (attr) =>
+  //       typeof theme[attr as keyof Theme] === "object" &&
+  //       "color" in (theme[attr as keyof Theme] as object)
+  //   );
+  // };
 
   const updateCSSVariables = useCallback(() => {
     const themeToUse = selectedTheme;
     const cssVars = {
-      "--primary-verba":
+      '--primary-verba':
         themeToUse.primary_color?.color || WeaviateTheme.primary_color.color,
-      "--secondary-verba":
+      '--secondary-verba':
         themeToUse.secondary_color?.color ||
         WeaviateTheme.secondary_color.color,
-      "--warning-verba":
+      '--warning-verba':
         themeToUse.warning_color?.color || WeaviateTheme.warning_color.color,
-      "--bg-verba": themeToUse.bg_color?.color || WeaviateTheme.bg_color.color,
-      "--bg-alt-verba":
+      '--bg-verba': themeToUse.bg_color?.color || WeaviateTheme.bg_color.color,
+      '--bg-alt-verba':
         themeToUse.bg_alt_color?.color || WeaviateTheme.bg_alt_color.color,
-      "--text-verba":
+      '--text-verba':
         themeToUse.text_color?.color || WeaviateTheme.text_color.color,
-      "--text-alt-verba":
+      '--text-alt-verba':
         themeToUse.text_alt_color?.color || WeaviateTheme.text_alt_color.color,
-      "--button-verba":
+      '--button-verba':
         themeToUse.button_color?.color || WeaviateTheme.button_color.color,
-      "--button-hover-verba":
+      '--button-hover-verba':
         themeToUse.button_hover_color?.color ||
         WeaviateTheme.button_hover_color.color,
-      "--text-verba-button":
+      '--text-verba-button':
         themeToUse.button_text_color?.color ||
         WeaviateTheme.button_text_color.color,
-      "--text-alt-verba-button":
+      '--text-alt-verba-button':
         themeToUse.button_text_alt_color?.color ||
         WeaviateTheme.button_text_alt_color.color,
     };
     Object.entries(cssVars).forEach(([key, value]) => {
       document.documentElement.style.setProperty(key, value);
     });
-  }, [selectedTheme, themes]);
+  }, [selectedTheme]);
 
-  useEffect(updateCSSVariables, [selectedTheme]);
+  useEffect(updateCSSVariables, []);
 
   const addStatusMessage = (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => {
     setStatusMessages((prevMessages) => [
       ...prevMessages,
@@ -178,117 +191,120 @@ export default function Home() {
   };
 
   return (
-    <main
-      className={`min-h-screen bg-bg-verba text-text-verba min-w-screen ${fontClassName}`}
-      data-theme={selectedTheme.theme}
-    >
-      {gtag !== "" && <GoogleAnalytics gaId={gtag} />}
+    <main className={`verba-container ${fontClassName}`}>
+      {gtag !== '' && <GoogleAnalytics gaId={gtag} />}
 
       <StatusMessengerComponent
-        status_messages={statusMessages}
         set_status_messages={setStatusMessages}
+        status_messages={statusMessages}
       />
 
       {!isLoggedIn && isHealthy && (
         <LoginView
-          production={production}
-          setSelectedTheme={setSelectedTheme}
-          setThemes={setThemes}
           credentials={credentials}
+          production={production}
+          setCredentials={setCredentials}
           setIsLoggedIn={setIsLoggedIn}
           setRAGConfig={setRAGConfig}
-          setCredentials={setCredentials}
+          setSelectedTheme={setSelectedTheme}
+          setThemes={setThemes}
         />
       )}
 
       {isLoggedIn && isHealthy && (
         <div
-          className={`transition-opacity duration-1000 ${
-            isLoaded ? "opacity-100" : "opacity-0"
-          } flex flex-col gap-2 p-5`}
+          className={`verba-layout transition-opacity duration-1000 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
         >
           <GettingStartedComponent addStatusMessage={addStatusMessage} />
 
-          <div>
-            <Navbar
-              production={production}
-              title={selectedTheme.title.text}
-              subtitle={selectedTheme.subtitle.text}
-              imageSrc={selectedTheme.image.src}
-              version="v2.0.0"
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-            />
+          <Navbar
+            currentPage={currentPage}
+            imageSrc={selectedTheme.image?.src || ''}
+            production={production}
+            setCurrentPage={setCurrentPage}
+            subtitle={selectedTheme.subtitle?.text || ''}
+            title={selectedTheme.title?.text || ''}
+            version="v2.0.0"
+          />
 
-            <div className={`${currentPage === "CHAT" ? "" : "hidden"}`}>
+          <div className="verba-content-wrapper">
+            <div className={`${currentPage === 'CHAT' ? '' : 'hidden'}`}>
               <ChatView
                 addStatusMessage={addStatusMessage}
                 credentials={credentials}
-                RAGConfig={RAGConfig}
-                setRAGConfig={setRAGConfig}
-                production={production}
-                selectedTheme={selectedTheme}
                 currentPage={currentPage}
                 documentFilter={documentFilter}
+                production={production}
+                RAGConfig={RAGConfig}
+                selectedTheme={selectedTheme}
                 setDocumentFilter={setDocumentFilter}
+                setRAGConfig={setRAGConfig}
               />
             </div>
 
-            {currentPage === "DOCUMENTS" && (
+            {currentPage === 'DOCUMENTS' && (
               <DocumentView
                 addStatusMessage={addStatusMessage}
                 credentials={credentials}
+                documentFilter={documentFilter}
                 production={production}
                 selectedTheme={selectedTheme}
-                documentFilter={documentFilter}
                 setDocumentFilter={setDocumentFilter}
               />
             )}
 
             <div
               className={`${
-                currentPage === "ADD" && production != "Demo" ? "" : "hidden"
+                currentPage === 'ADD' && production !== 'Demo' ? '' : 'hidden'
               }`}
             >
               <IngestionView
+                addStatusMessage={addStatusMessage}
+                credentials={credentials}
                 RAGConfig={RAGConfig}
                 setRAGConfig={setRAGConfig}
-                credentials={credentials}
-                addStatusMessage={addStatusMessage}
               />
             </div>
 
             <div
               className={`${
-                currentPage === "SETTINGS" && production != "Demo"
-                  ? ""
-                  : "hidden"
+                currentPage === 'SETTINGS' && production !== 'Demo'
+                  ? ''
+                  : 'hidden'
               }`}
             >
               <SettingsView
-                credentials={credentials}
                 addStatusMessage={addStatusMessage}
+                credentials={credentials}
                 selectedTheme={selectedTheme}
                 setSelectedTheme={setSelectedTheme}
-                themes={themes}
                 setThemes={setThemes}
+                themes={themes}
               />
             </div>
           </div>
 
           <div
-            className={`footer footer-center p-4 mt-8 bg-bg-verba text-text-alt-verba transition-all duration-1500 delay-1000`}
+            className={
+              'mt-8 bg-bg-verba p-4 text-center text-text-alt-verba transition-all delay-1000 duration-1500'
+            }
           >
-            <aside>
-              <p>Build with ♥ and Weaviate © 2024</p>
-            </aside>
+            <p>Build with ♥ and Weaviate © 2024</p>
           </div>
         </div>
       )}
 
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* Tracking pixel: using <img> intentionally; Next/Image not appropriate */}
       <img
         referrerPolicy="no-referrer-when-downgrade"
         src="https://static.scarf.sh/a.png?x-pxid=ec666e70-aee5-4e87-bc62-0935afae63ac"
+        alt=""
+        aria-hidden="true"
+        width={1}
+        height={1}
       />
     </main>
   );

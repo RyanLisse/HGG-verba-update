@@ -15,7 +15,8 @@ from goldenverba.server.types import FileConfig
 
 class FirecrawlReader(Reader):
     """
-    FirecrawlReader uses the Firecrawl API to scrape or crawl websites and ingest them into Verba.
+    FirecrawlReader uses the Firecrawl API to scrape or crawl websites and
+    ingest them into Verba.
     """
 
     def __init__(self):
@@ -27,7 +28,8 @@ class FirecrawlReader(Reader):
             "Mode": InputConfig(
                 type="dropdown",
                 value="Scrape",
-                description="Switch between scraping and crawling. Note that crawling can take some time.",
+                description="Switch between scraping and crawling. "
+                "Note that crawling can take some time.",
                 values=["Crawl", "Scrape"],
             ),
             "URLs": InputConfig(
@@ -42,7 +44,8 @@ class FirecrawlReader(Reader):
             self.config["Firecrawl API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Firecrawl API Key or set it as environment variable `FIRECRAWL_API_KEY`",
+                description="You can set your Firecrawl API Key or set it as "
+                "environment variable `FIRECRAWL_API_KEY`",
                 values=[],
             )
 
@@ -130,7 +133,8 @@ class FirecrawlReader(Reader):
 
         if not documents:
             raise Exception(
-                "Firecrawl was not able to load any documents, please check your API Key and settings"
+                "Firecrawl was not able to load any documents, "
+                "please check your API Key and settings"
             )
 
         return documents

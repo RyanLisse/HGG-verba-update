@@ -36,7 +36,10 @@ class AnthropicGenerator(Generator):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Anthropic API Key here or set it as environment variable `ANTHROPIC_API_KEY`",
+                description=(
+                    "You can set your Anthropic API Key here or set it as "
+                    "environment variable `ANTHROPIC_API_KEY`"
+                ),
                 values=[],
             )
 
@@ -45,8 +48,10 @@ class AnthropicGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ):
+        if conversation is None:
+            conversation = []
         model = config.get("Model").value
         system_message = config.get("System Message").value
         antr_key = get_environment(
@@ -69,42 +74,44 @@ class AnthropicGenerator(Generator):
             "max_tokens": 4096,
         }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(
                 self.url,
                 json=data,
                 headers=headers,
-            ) as response:
-                if response.status != 200:
-                    error_json = await response.json()
-                    error_message = error_json.get("error", {}).get(
-                        "message", "Unknown error occurred"
-                    )
-                    yield {
-                        "message": f"Error: {error_message}",
-                        "finish_reason": "stop",
-                    }
-                    return
+            ) as response,
+        ):
+            if response.status != 200:
+                error_json = await response.json()
+                error_message = error_json.get("error", {}).get(
+                    "message", "Unknown error occurred"
+                )
+                yield {
+                    "message": f"Error: {error_message}",
+                    "finish_reason": "stop",
+                }
+                return
 
-                async for line in response.content:
-                    line = line.decode("utf-8").strip()
-                    if line.startswith("data: "):
-                        if line == "data: [DONE]":
-                            break
-                        json_line = json.loads(line[6:])
-                        if json_line["type"] == "content_block_delta":
-                            delta = json_line.get("delta", {})
-                            if delta.get("type") == "text_delta":
-                                text = delta.get("text", "")
-                                yield {
-                                    "message": text,
-                                    "finish_reason": None,
-                                }
-                        elif json_line.get("type") == "message_stop":
+            async for line in response.content:
+                line = line.decode("utf-8").strip()
+                if line.startswith("data: "):
+                    if line == "data: [DONE]":
+                        break
+                    json_line = json.loads(line[6:])
+                    if json_line["type"] == "content_block_delta":
+                        delta = json_line.get("delta", {})
+                        if delta.get("type") == "text_delta":
+                            text = delta.get("text", "")
                             yield {
-                                "message": "",
-                                "finish_reason": json_line.get("stop_reason", "stop"),
+                                "message": text,
+                                "finish_reason": None,
                             }
+                    elif json_line.get("type") == "message_stop":
+                        yield {
+                            "message": "",
+                            "finish_reason": json_line.get("stop_reason", "stop"),
+                        }
 
     def prepare_messages(
         self, query: str, context: str, conversation: list[dict]
@@ -122,7 +129,10 @@ class AnthropicGenerator(Generator):
         messages.append(
             {
                 "role": "user",
-                "content": f"Answer this query: '{query}' with this provided context: {context}",
+                "content": (
+                    f"Answer this query: '{query}' with this provided context: "
+                    f"{context}"
+                ),
             }
         )
 

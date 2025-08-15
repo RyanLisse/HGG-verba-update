@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { FaInfo } from "react-icons/fa";
-import VerbaButton from "./VerbaButton";
+import type React from 'react';
+import { useState } from 'react';
 
-interface InfoComponentProps {
+type InfoComponentProps = {
   tooltip_text: string;
   display_text: string;
-}
+};
 
 const InfoComponent: React.FC<InfoComponentProps> = ({
   tooltip_text,
@@ -16,19 +15,19 @@ const InfoComponent: React.FC<InfoComponentProps> = ({
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div className={`items-center gap-2 flex`}>
+    <div className={'flex items-center gap-2'}>
       <div
+        className="relative flex cursor-pointer flex-col items-center text-text-alt-verba"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="relative cursor-pointer flex flex-col items-center text-text-alt-verba"
       >
-        <p className="text-sm ml-3">{display_text}</p>
+        <p className="ml-3 text-sm">{display_text}</p>
         <div
-          className={`absolute top-full left-full mt-2 z-30 p-4 bg-bg-verba text-text-alt-verba text-xs rounded-xl shadow-md w-[300px] transition-opacity duration-300 ${
-            showTooltip ? "opacity-100" : "opacity-0 pointer-events-none"
+          className={`absolute top-full left-full z-30 mt-2 w-[300px] rounded-xl bg-bg-verba p-4 text-text-alt-verba text-xs shadow-md transition-opacity duration-300 ${
+            showTooltip ? 'opacity-100' : 'pointer-events-none opacity-0'
           }`}
         >
-          <p className="w-full text-xs whitespace-normal">{tooltip_text}</p>
+          <p className="w-full whitespace-normal text-xs">{tooltip_text}</p>
         </div>
       </div>
     </div>

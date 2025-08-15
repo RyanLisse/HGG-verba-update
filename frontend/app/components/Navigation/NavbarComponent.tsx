@@ -1,36 +1,36 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { FaGithub } from 'react-icons/fa';
+import { IoMdAddCircle } from 'react-icons/io';
+import {
+  IoChatbubbleSharp,
+  IoDocumentSharp,
+  IoSettingsSharp,
+} from 'react-icons/io5';
+import { TiThMenu } from 'react-icons/ti';
 
-import { IoChatbubbleSharp } from "react-icons/io5";
-import { IoDocumentSharp } from "react-icons/io5";
-import { IoMdAddCircle } from "react-icons/io";
-import { IoSettingsSharp } from "react-icons/io5";
-import { FaGithub } from "react-icons/fa";
-import { TiThMenu } from "react-icons/ti";
+import { closeOnClick } from '@/app/util';
+import NavbarButton from './NavButton';
+import { getGitHubStars } from './util';
+import VerbaButton from './VerbaButton';
 
-import { closeOnClick } from "@/app/util";
-
-import VerbaButton from "./VerbaButton";
-
-import NavbarButton from "./NavButton";
-import { getGitHubStars } from "./util";
-
-interface NavbarProps {
+type NavbarProps = {
   imageSrc: string;
   title: string;
   subtitle: string;
   version: string;
   currentPage: string;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   setCurrentPage: (
-    page: "CHAT" | "DOCUMENTS" | "STATUS" | "ADD" | "SETTINGS" | "RAG"
+    page: 'CHAT' | 'DOCUMENTS' | 'STATUS' | 'ADD' | 'SETTINGS' | 'RAG'
   ) => void;
-}
+};
 
 const formatGitHubNumber = (num: number): string => {
   if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return `${(num / 1000).toFixed(1).replace(/\.0$/, '')}k`;
   }
   return num.toString();
 };
@@ -43,7 +43,7 @@ const Navbar: React.FC<NavbarProps> = ({
   setCurrentPage,
   production,
 }) => {
-  const [gitHubStars, setGitHubStars] = useState("0");
+  const [gitHubStars, setGitHubStars] = useState('0');
 
   useEffect(() => {
     // Declare an asynchronous function inside the useEffect
@@ -57,9 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({
           const formatedStars = formatGitHubNumber(response);
           setGitHubStars(formatedStars);
         }
-      } catch (error) {
-        console.error("Failed to fetch GitHub stars:", error);
-      }
+      } catch (_error) {}
     };
 
     // Call the async function
@@ -69,134 +67,83 @@ const Navbar: React.FC<NavbarProps> = ({
   const handleGitHubClick = () => {
     // Open a new tab with the specified URL
     window.open(
-      "https://github.com/weaviate/verba",
-      "_blank",
-      "noopener,noreferrer"
+      'https://github.com/weaviate/verba',
+      '_blank',
+      'noopener,noreferrer'
     );
   };
 
   return (
-    <div className="flex justify-between items-center mb-10">
+    <div className="verba-header">
       {/* Logo, Title, Subtitle */}
-      <div className="flex flex-row items-center gap-5">
+      <div className="verba-logo">
         <img
+          className="w-[60px] rounded-lg object-contain filter-[drop-shadow(0_4px_3px_rgb(0_0_0/0.07))_drop-shadow(0_2px_2px_rgb(0_0_0/0.06))]"
           src={imageSrc}
-          className="flex rounded-lg w-[60px] object-contain [filter:drop-shadow(0_4px_3px_rgb(0_0_0_/0.07))_drop-shadow(0_2px_2px_rgb(0_0_0_/0.06))]"
+          alt={title}
         />
         <div className="flex flex-col">
-          <p className="text-xl font-bold text-text-verba">{title}</p>
-          <p className="text-sm  text-text-alt-verba font-light">{subtitle}</p>
+          <p className="verba-title">{title}</p>
+          <p className="verba-subtitle">{subtitle}</p>
         </div>
-        <div className="flex md:hidden flex-col items-center gap-3 justify-between">
-          <div className="dropdown dropdown-hover">
-            <VerbaButton Icon={TiThMenu} title="Menu" />
-            <ul
-              tabIndex={0}
-              className="dropdown-content dropdown-left z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-            >
-              <li key={"Menu Button1"}>
-                <a
-                  className={currentPage === "CHAT" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("CHAT");
-                    closeOnClick();
-                  }}
-                >
-                  Chat
-                </a>
-              </li>
-              <li key={"Menu Button2"}>
-                <a
-                  className={currentPage === "DOCUMENTS" ? "font-bold" : ""}
-                  onClick={() => {
-                    setCurrentPage("DOCUMENTS");
-                    closeOnClick();
-                  }}
-                >
-                  Documents
-                </a>
-              </li>
-              {production != "Demo" && (
-                <li key={"Menu Button4"}>
-                  <a
-                    className={currentPage === "ADD" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("ADD");
-                      closeOnClick();
-                    }}
-                  >
-                    Import Data
-                  </a>
-                </li>
-              )}
-              {production != "Demo" && (
-                <li key={"Menu Button5"}>
-                  <a
-                    className={currentPage === "SETTINGS" ? "font-bold" : ""}
-                    onClick={() => {
-                      setCurrentPage("SETTINGS");
-                      closeOnClick();
-                    }}
-                  >
-                    Settings
-                  </a>
-                </li>
-              )}
-            </ul>
-          </div>
+        <div className="flex flex-col items-center justify-between gap-3 md:hidden">
+          {/* Mobile menu - simplified without dropdown for now */}
+          <VerbaButton Icon={TiThMenu} title="Menu" />
         </div>
       </div>
 
-      <div className="flex flex-row justify-center items-center">
+      <div className="verba-nav">
         {/* Pages */}
-        <div className="hidden md:flex flex-row items-center gap-3 justify-between">
+        <div className="hidden flex-row items-center justify-between gap-3 md:flex">
           <NavbarButton
+            currentPage={currentPage}
             hide={false}
             Icon={IoChatbubbleSharp}
-            title="Chat"
-            currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             setPage="CHAT"
+            title="Chat"
           />
-          {production != "Demo" && (
+          {production !== 'Demo' && (
             <NavbarButton
+              currentPage={currentPage}
               hide={false}
               Icon={IoMdAddCircle}
-              title="Import Data"
-              currentPage={currentPage}
               setCurrentPage={setCurrentPage}
               setPage="ADD"
+              title="Import Data"
             />
           )}
           <NavbarButton
+            currentPage={currentPage}
             hide={false}
             Icon={IoDocumentSharp}
-            title="Documents"
-            currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             setPage="DOCUMENTS"
+            title="Documents"
           />
-          {production != "Demo" && (
+          {production !== 'Demo' && (
             <NavbarButton
+              currentPage={currentPage}
               hide={false}
               Icon={IoSettingsSharp}
-              title="Settings"
-              currentPage={currentPage}
               setCurrentPage={setCurrentPage}
               setPage="SETTINGS"
+              title="Settings"
             />
           )}
           <div
-            className={`sm:h-[3vh] lg:h-[5vh] mx-1 hidden md:block bg-text-alt-verba w-px`}
-          ></div>
+            className={
+              'mx-1 hidden w-px bg-text-alt-verba sm:h-[3vh] md:block lg:h-[5vh]'
+            }
+          />
           <VerbaButton
-            title={gitHubStars}
-            Icon={FaGithub}
-            onClick={handleGitHubClick}
-            className="flex-grow"
-            icon_size={14}
+            className="grow"
             disabled={false}
+            Icon={FaGithub}
+            icon_size={14}
+            onClick={handleGitHubClick}
             selected={false}
+            title={gitHubStars}
           />
         </div>
       </div>

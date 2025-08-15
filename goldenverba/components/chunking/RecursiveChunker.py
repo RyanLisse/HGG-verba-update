@@ -61,7 +61,6 @@ class RecursiveChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         units = int(config["Chunk Size"].value)
         overlap = int(config["Overlap"].value)
         seperators = config["Seperators"].values
@@ -75,28 +74,28 @@ class RecursiveChunker(Chunker):
         )
 
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
 
-            # char_end_i = -1
+            # Character positions not tracked due to text splitter modifications
             for i, chunk in enumerate(text_splitter.split_text(document.content)):
-
-                # leavingt this commented because this _does_ work but the text splitter strips whitespace and therefore modifies the original doc
+                # leavingt this commented because this _does_ work but the text
+                # splitter strips whitespace and therefore modifies the original doc
                 # if overlap == 0:
                 #     char_start_i = char_end_i + 1
                 #     char_end_i = char_start_i + len(chunk)
                 # else:
 
-                # not implemented because it uses intelligent chunking to find start of token
-                char_start_i = None
-                char_end_i = None
+                # not implemented because it uses intelligent chunking to find
+                # start of token
+                char_start_i = 0
+                char_end_i = len(chunk)
 
                 document.chunks.append(
                     Chunk(
                         content=chunk,
-                        chunk_id=i,
+                        chunk_id=str(i),
                         start_i=char_start_i,
                         end_i=char_end_i,
                         content_without_overlap=chunk,

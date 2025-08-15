@@ -165,6 +165,32 @@ class WeaviateManager:
         self.suggestion_collection_name = "VERBA_SUGGESTIONS"
         self.embedding_table = {}
 
+    async def _with_backoff(
+        self, op, *, max_attempts: int = 5, base_delay: float = 0.5
+    ):
+        """Run an async operation with exponential backoff on transient errors.
+        Retries on HTTP 429/5xx when available (Weaviate client can raise exceptions without status).
+        """
+        attempt = 0
+        while True:
+            try:
+                result = await op()
+                return result
+            except Exception as e:
+                attempt += 1
+                # Best-effort status extraction
+                status = getattr(e, "status_code", None) or getattr(e, "status", None)
+                transient = status in (429, 500, 502, 503, 504) or status is None
+                if attempt >= max_attempts or not transient:
+                    raise
+                delay = base_delay * (2 ** (attempt - 1))
+                # Add jitter (±20%)
+                import random
+
+                jitter = delay * (0.2 * (2 * random.random() - 1))
+                sleep_for = max(0.0, delay + jitter)
+                await asyncio.sleep(sleep_for)
+
     ### Connection Handling
 
     async def connect_to_cluster(self, w_url, w_key):
@@ -226,7 +252,6 @@ class WeaviateManager:
         self, deployment: str, weaviateURL: str, weaviateAPIKey: str, port: str = "8080"
     ) -> WeaviateAsyncClient:
         try:
-
             if deployment == "Weaviate":
                 if weaviateURL == "" and os.environ.get("WEAVIATE_URL_VERBA"):
                     weaviateURL = os.environ.get("WEAVIATE_URL_VERBA")
@@ -254,7 +279,7 @@ class WeaviateManager:
             msg.fail(f"Couldn't connect to Weaviate, check your URL/API KEY: {e!s}")
             raise Exception(
                 f"Couldn't connect to Weaviate, check your URL/API KEY: {e!s}"
-            )
+            ) from e
 
     async def disconnect(self, client: WeaviateAsyncClient):
         try:
@@ -267,7 +292,6 @@ class WeaviateManager:
     ### Metadata
 
     async def get_metadata(self, client: WeaviateAsyncClient):
-
         # Node Information
         nodes = await client.cluster.nodes(output="verbose")
         node_payload = {"node_count": 0, "weaviate_version": "", "nodes": []}
@@ -304,12 +328,11 @@ class WeaviateManager:
     ):
         if not await client.collections.exists(collection_name):
             msg.info(
-                f"Collection: {collection_name} does not exist, creating new collection."
+                f"Collection: {collection_name} does not exist, creating new "
+                f"collection."
             )
             returned_collection = await client.collections.create(name=collection_name)
-            if returned_collection:
-                return True
-            return False
+            return bool(returned_collection)
         return True
 
     async def verify_embedding_collection(self, client: WeaviateAsyncClient, embedder):
@@ -332,15 +355,17 @@ class WeaviateManager:
         self, client: WeaviateAsyncClient, environment_variables, libraries
     ):
         for embedder in embedders:
-            if embedder.check_available(environment_variables, libraries):
-                if "Model" in embedder.config:
-                    for _embedder in embedder.config["Model"].values:
-                        self.embedding_table[_embedder] = "VERBA_Embedding_" + re.sub(
-                            r"[^a-zA-Z0-9]", "_", _embedder
-                        )
-                        await self.verify_collection(
-                            client, self.embedding_table[_embedder]
-                        )
+            if (
+                embedder.check_available(environment_variables, libraries)
+                and "Model" in embedder.config
+            ):
+                for _embedder in embedder.config["Model"].values:
+                    self.embedding_table[_embedder] = "VERBA_Embedding_" + re.sub(
+                        r"[^a-zA-Z0-9]", "_", _embedder
+                    )
+                    await self.verify_collection(
+                        client, self.embedding_table[_embedder]
+                    )
 
     async def verify_collections(
         self, client: WeaviateAsyncClient, environment_variables, libraries
@@ -405,51 +430,66 @@ class WeaviateManager:
                     chunk.labels = document.labels
                     chunk.title = document.title
 
-                chunk_response = await embedder_collection.data.insert_many(
-                    [
-                        DataObject(properties=chunk.to_json(), vector=chunk.vector)
-                        for chunk in document.chunks
-                    ]
-                )
+                # Insert embeddings in batches to control memory/throughput
+                insert_batch = int(os.getenv("VERBA_WV_INSERT_BATCH", "1000"))
+                data_objs = [
+                    DataObject(properties=chunk.to_json(), vector=chunk.vector)
+                    for chunk in document.chunks
+                ]
+                chunk_response = None
+                for i in range(0, len(data_objs), insert_batch):
+                    batch_slice = data_objs[i : i + insert_batch]
+                    async def _op(batch=batch_slice):
+                        return await embedder_collection.data.insert_many(batch)
+                    chunk_response = await self._with_backoff(_op)
                 chunk_ids = [
                     chunk_response.uuids[uuid] for uuid in chunk_response.uuids
                 ]
 
                 if chunk_response.has_errors:
                     raise Exception(
-                        f"Failed to ingest chunks into Weaviate: {chunk_response.errors}"
+                        f"Failed to ingest chunks into Weaviate: "
+                        f"{chunk_response.errors}"
                     )
 
                 if doc_uuid and chunk_response:
-                    response = await embedder_collection.aggregate.over_all(
-                        filters=Filter.by_property("doc_uuid").equal(doc_uuid),
-                        total_count=True,
-                    )
+                    async def _agg():
+                        return await embedder_collection.aggregate.over_all(
+                            filters=Filter.by_property("doc_uuid").equal(doc_uuid),
+                            total_count=True,
+                        )
+                    response = await self._with_backoff(_agg)
                     if response.total_count != len(document.chunks):
                         await document_collection.data.delete_by_id(doc_uuid)
                         for _id in chunk_ids:
                             await embedder_collection.data.delete_by_id(_id)
                         raise Exception(
-                            f"Chunk Mismatch detected after importing: Imported:{response.total_count} | Existing: {len(document.chunks)}"
+                            f"Chunk Mismatch detected after importing: "
+                            f"Imported:{response.total_count} | "
+                            f"Existing: {len(document.chunks)}"
                         )
 
             except Exception as e:
                 if doc_uuid:
                     await self.delete_document(client, doc_uuid)
-                raise Exception(f"Chunk import failed with : {e!s}")
+                raise Exception(f"Chunk import failed with : {e!s}") from e
 
     ### Document CRUD
 
     async def exist_document_name(self, client: WeaviateAsyncClient, name: str) -> str:
         if await self.verify_collection(client, self.document_collection_name):
             document_collection = client.collections.get(self.document_collection_name)
-            aggregation = await document_collection.aggregate.over_all(total_count=True)
+            async def _agg_docs():
+                return await document_collection.aggregate.over_all(total_count=True)
+            aggregation = await self._with_backoff(_agg_docs)
 
             if aggregation.total_count == 0:
                 return None
-            documents = await document_collection.query.fetch_objects(
-                filters=Filter.by_property("title").equal(name)
-            )
+            async def _fetch_doc():
+                return await document_collection.query.fetch_objects(
+                    filters=Filter.by_property("title").equal(name)
+                )
+            documents = await self._with_backoff(_fetch_doc)
             if len(documents.objects) > 0:
                 return documents.objects[0].uuid
 
@@ -468,14 +508,15 @@ class WeaviateManager:
             ]
             embedder = embedding_config["config"]["Model"]["value"]
 
-            if await self.verify_embedding_collection(client, embedder):
-                if await document_collection.data.delete_by_id(uuid):
-                    embedder_collection = client.collections.get(
-                        self.embedding_table[embedder]
-                    )
-                    await embedder_collection.data.delete_many(
-                        where=Filter.by_property("doc_uuid").equal(uuid)
-                    )
+            if await self.verify_embedding_collection(
+                client, embedder
+            ) and await document_collection.data.delete_by_id(uuid):
+                embedder_collection = client.collections.get(
+                    self.embedding_table[embedder]
+                )
+                await embedder_collection.data.delete_many(
+                    where=Filter.by_property("doc_uuid").equal(uuid)
+                )
 
     async def delete_all_documents(self, client: WeaviateAsyncClient):
         if await self.verify_collection(client, self.document_collection_name):
@@ -513,9 +554,12 @@ class WeaviateManager:
             else:
                 filter = None
 
-            response = await document_collection.aggregate.over_all(
-                total_count=True, filters=filter
-            )
+            async def _agg_total():
+                return await document_collection.aggregate.over_all(
+                    total_count=True,
+                    filters=filter,
+                )
+            response = await self._with_backoff(_agg_total)
 
             if response.total_count == 0:
                 return [], 0
@@ -524,12 +568,14 @@ class WeaviateManager:
 
             if query == "":
                 total_count = response.total_count
-                response = await document_collection.query.fetch_objects(
-                    limit=pageSize,
-                    offset=offset,
-                    return_properties=properties,
-                    sort=Sort.by_property("title", ascending=True),
-                    filters=filter,
+                response = await self._with_backoff(
+                    lambda: document_collection.query.fetch_objects(
+                        limit=pageSize,
+                        offset=offset,
+                        return_properties=properties,
+                        sort=Sort.by_property("title", ascending=True),
+                        filters=filter,
+                    )
                 )
             else:
                 response = await document_collection.query.bm25(
@@ -568,8 +614,10 @@ class WeaviateManager:
     async def get_labels(self, client: WeaviateAsyncClient) -> list[str]:
         if await self.verify_collection(client, self.document_collection_name):
             document_collection = client.collections.get(self.document_collection_name)
-            aggregation = await document_collection.aggregate.over_all(
-                group_by=GroupByAggregate(prop="labels"), total_count=True
+            aggregation = await self._with_backoff(
+                lambda: document_collection.aggregate.over_all(
+                    group_by=GroupByAggregate(prop="labels"), total_count=True
+                )
             )
             return [
                 aggregation_group.grouped_by.value
@@ -592,9 +640,7 @@ class WeaviateManager:
     async def get_chunks(
         self, client: WeaviateAsyncClient, uuid: str, page: int, pageSize: int
     ) -> list[dict]:
-
         if await self.verify_collection(client, self.document_collection_name):
-
             offset = pageSize * (page - 1)
 
             document = await self.get_document(client, uuid, properties=["meta"])
@@ -609,12 +655,14 @@ class WeaviateManager:
                     self.embedding_table[embedder]
                 )
 
-                weaviate_chunks = await embedder_collection.query.fetch_objects(
-                    filters=Filter.by_property("doc_uuid").equal(uuid),
-                    limit=pageSize,
-                    offset=offset,
-                    sort=Sort.by_property("chunk_id", ascending=True),
-                )
+                async def _fetch_chunks():
+                    return await embedder_collection.query.fetch_objects(
+                        filters=Filter.by_property("doc_uuid").equal(uuid),
+                        limit=pageSize,
+                        offset=offset,
+                        sort=Sort.by_property("chunk_id", ascending=True),
+                    )
+                weaviate_chunks = await self._with_backoff(_fetch_chunks)
                 chunks = [obj.properties for obj in weaviate_chunks.objects]
                 for chunk in chunks:
                     chunk["doc_uuid"] = str(chunk["doc_uuid"])
@@ -623,7 +671,6 @@ class WeaviateManager:
     async def get_vectors(
         self, client: WeaviateAsyncClient, uuid: str, showAll: bool
     ) -> dict:
-
         document = await self.get_document(client, uuid, properties=["meta", "title"])
 
         if document is None:
@@ -636,7 +683,7 @@ class WeaviateManager:
             embedder_collection = client.collections.get(self.embedding_table[embedder])
 
             if not showAll:
-                batch_size = 250
+                batch_size = int(os.getenv("VERBA_WV_FETCH_BATCH", "250"))
                 all_chunks = []
                 offset = 0
                 total_time = 0
@@ -644,13 +691,15 @@ class WeaviateManager:
 
                 while True:
                     call_start_time = asyncio.get_event_loop().time()
-                    weaviate_chunks = await embedder_collection.query.fetch_objects(
-                        filters=Filter.by_property("doc_uuid").equal(uuid),
-                        limit=batch_size,
-                        offset=offset,
-                        return_properties=["chunk_id", "pca"],
-                        include_vector=True,
-                    )
+                    async def _fetch_batch():
+                        return await embedder_collection.query.fetch_objects(
+                            filters=Filter.by_property("doc_uuid").equal(uuid),
+                            limit=batch_size,
+                            offset=offset,
+                            return_properties=["chunk_id", "pca"],
+                            include_vector=True,
+                        )
+                    weaviate_chunks = await self._with_backoff(_fetch_batch)
                     call_end_time = asyncio.get_event_loop().time()
                     call_duration = call_end_time - call_start_time
                     total_time += call_duration
@@ -711,15 +760,14 @@ class WeaviateManager:
             if len(vector_ids) > 3:
                 pca = PCA(n_components=3)
                 generated_pca_embeddings = pca.fit_transform(vector_list)
-                pca_embeddings = [
-                    pca_.tolist() for pca_ in generated_pca_embeddings
-                ]
+                pca_embeddings = [pca_.tolist() for pca_ in generated_pca_embeddings]
 
                 for pca_embedding, _uuid, _chunk_uuid, _chunk_id in zip(
                     pca_embeddings,
                     vector_ids,
                     vector_chunk_uuids,
-                    vector_chunk_ids, strict=False,
+                    vector_chunk_ids,
+                    strict=False,
                 ):
                     vector_map[_uuid]["chunks"].append(
                         {
@@ -804,13 +852,15 @@ class WeaviateManager:
         if await self.verify_embedding_collection(client, embedder):
             embedder_collection = client.collections.get(self.embedding_table[embedder])
             try:
-                weaviate_chunks = await embedder_collection.query.fetch_objects(
-                    filters=(
-                        Filter.by_property("doc_uuid").equal(str(doc_uuid))
-                        & Filter.by_property("chunk_id").contains_any(list(ids))
-                    ),
-                    sort=Sort.by_property("chunk_id", ascending=True),
-                )
+                async def _fetch_by_ids():
+                    return await embedder_collection.query.fetch_objects(
+                        filters=(
+                            Filter.by_property("doc_uuid").equal(str(doc_uuid))
+                            & Filter.by_property("chunk_id").contains_any(list(ids))
+                        ),
+                        sort=Sort.by_property("chunk_id", ascending=True),
+                    )
+                weaviate_chunks = await self._with_backoff(_fetch_by_ids)
                 return weaviate_chunks.objects
             except Exception as e:
                 msg.fail(f"Failed to fetch chunks: {e!s}")
@@ -827,11 +877,11 @@ class WeaviateManager:
                 total_count=True
             )
             if aggregation.total_count > 0:
-                does_suggestion_exists = (
-                    await suggestion_collection.query.fetch_objects(
+                async def _fetch_suggestion():
+                    return await suggestion_collection.query.fetch_objects(
                         filters=Filter.by_property("query").equal(query)
                     )
-                )
+                does_suggestion_exists = await self._with_backoff(_fetch_suggestion)
                 if len(does_suggestion_exists.objects) > 0:
                     return
             await suggestion_collection.data.insert(
@@ -866,11 +916,13 @@ class WeaviateManager:
                 self.suggestion_collection_name
             )
             offset = pageSize * (page - 1)
-            suggestions = await suggestion_collection.query.fetch_objects(
-                limit=pageSize,
-                offset=offset,
-                sort=Sort.by_property("timestamp", ascending=False),
-            )
+            async def _fetch_suggestions():
+                return await suggestion_collection.query.fetch_objects(
+                    limit=pageSize,
+                    offset=offset,
+                    sort=Sort.by_property("timestamp", ascending=False),
+                )
+            suggestions = await self._with_backoff(_fetch_suggestions)
             aggregation = await suggestion_collection.aggregate.over_all(
                 total_count=True
             )
@@ -902,8 +954,13 @@ class WeaviateManager:
     ### Metadata Retrieval
 
     async def get_datacount(
-        self, client: WeaviateAsyncClient, embedder: str, document_uuids: list[str] = []
+        self,
+        client: WeaviateAsyncClient,
+        embedder: str,
+        document_uuids: list[str] | None = None,
     ) -> int:
+        if document_uuids is None:
+            document_uuids = []
         if await self.verify_embedding_collection(client, embedder):
             embedder_collection = client.collections.get(self.embedding_table[embedder])
 
@@ -978,7 +1035,7 @@ class ReaderManager:
             raise Exception(f"{reader} Reader not found")
 
         except Exception as e:
-            raise Exception(f"Reader {reader} failed with: {e!s}")
+            raise Exception(f"Reader {reader} failed with: {e!s}") from e
 
 
 class ChunkerManager:
@@ -1020,14 +1077,16 @@ class ChunkerManager:
                     await logger.send_report(
                         fileConfig.fileID,
                         FileStatus.CHUNKING,
-                        f"Split {fileConfig.filename} into {len(chunked_documents[0].chunks)} chunks",
+                        f"Split {fileConfig.filename} into "
+                        f"{len(chunked_documents[0].chunks)} chunks",
                         took=elapsed_time,
                     )
                 else:
                     await logger.send_report(
                         fileConfig.fileID,
                         FileStatus.CHUNKING,
-                        f"Chunked all {len(chunked_documents)} documents with a total of {sum([len(document.chunks) for document in chunked_documents])} chunks",
+                        f"Chunked all {len(chunked_documents)} documents with a total of "
+                        f"{sum(len(document.chunks) for document in chunked_documents)} chunks",
                         took=elapsed_time,
                     )
 
@@ -1116,9 +1175,15 @@ class EmbeddingManager:
                 for i in range(0, len(content), self.embedders[embedder].max_batch_size)
             ]
             msg.info(f"Vectorizing {len(content)} chunks in {len(batches)} batches")
-            tasks = [
-                self.embedders[embedder].vectorize(config, batch) for batch in batches
-            ]
+            # Concurrency limit to avoid overwhelming providers
+            concurrency = int(os.getenv("VERBA_EMBED_CONCURRENCY", "4"))
+            semaphore = asyncio.Semaphore(concurrency)
+
+            async def _task(batch):
+                async with semaphore:
+                    return await self.embedders[embedder].vectorize(config, batch)
+
+            tasks = [_task(batch) for batch in batches]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Check if all tasks were successful
@@ -1126,7 +1191,8 @@ class EmbeddingManager:
             if errors:
                 error_messages = [str(e) for e in errors]
                 raise Exception(
-                    f"Vectorization failed for some batches: {', '.join(error_messages)}"
+                    f"Vectorization failed for some batches: "
+                    f"{', '.join(error_messages)}"
                 )
 
             # Flatten the results
@@ -1135,12 +1201,13 @@ class EmbeddingManager:
             # Verify the number of vectors matches the input content
             if len(flattened_results) != len(content):
                 raise Exception(
-                    f"Mismatch in vectorization results: expected {len(content)} vectors, got {len(flattened_results)}"
+                    f"Mismatch in vectorization results: expected {len(content)} "
+                    f"vectors, got {len(flattened_results)}"
                 )
 
             return flattened_results
         except Exception as e:
-            raise Exception(f"Batch vectorization failed: {e!s}")
+            raise Exception(f"Batch vectorization failed: {e!s}") from e
 
     async def vectorize_query(
         self, embedder: str, content: str, rag_config: dict
@@ -1206,11 +1273,13 @@ class GeneratorManager:
         }
 
     async def generate_stream(self, rag_config, query, context, conversation):
-        """Generate a stream of response dicts based on a list of queries and list of contexts, and includes conversational context
+        """Generate a stream of response dicts based on a list of queries and
+        list of contexts, and includes conversational context
         @parameter: queries : list[str] - List of queries
         @parameter: context : list[str] - List of contexts
         @parameter: conversation : dict - Conversational context
-        @returns Iterator[dict] - Token response generated by the Generator in this format {system:TOKEN, finish_reason:stop or empty}.
+        @returns Iterator[dict] - Token response generated by the Generator in
+        this format {system:TOKEN, finish_reason:stop or empty}.
         """
 
         generator = rag_config["Generator"].selected
@@ -1230,12 +1299,20 @@ class GeneratorManager:
         self, conversation_dicts: list[dict[str, any]], max_tokens: int
     ) -> list[dict[str, any]]:
         """
-        Truncate a list of conversation dictionaries to fit within a specified maximum token limit.
+        Truncate a list of conversation dictionaries to fit within a specified
+        maximum token limit.
 
-        @parameter conversation_dicts: List[Dict[str, any]] - A list of conversation dictionaries that may contain various keys, where 'content' key is present and contains text data.
-        @parameter max_tokens: int - The maximum number of tokens that the combined content of the truncated conversation dictionaries should not exceed.
+        @parameter conversation_dicts: List[Dict[str, any]] - A list of
+        conversation dictionaries that may contain various keys, where 'content'
+        key is present and contains text data.
+        @parameter max_tokens: int - The maximum number of tokens that the
+        combined content of the truncated conversation dictionaries should not
+        exceed.
 
-        @returns List[Dict[str, any]]: A list of conversation dictionaries that have been truncated so that their combined content respects the max_tokens limit. The list is returned in the original order of conversation with the most recent conversation being truncated last if necessary.
+        @returns List[Dict[str, any]]: A list of conversation dictionaries that
+        have been truncated so that their combined content respects the max_tokens
+        limit. The list is returned in the original order of conversation with the
+        most recent conversation being truncated last if necessary.
 
         """
         encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")

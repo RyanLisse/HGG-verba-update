@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React from "react";
+import type React from 'react';
 
-interface StatusLabelProps {
+type StatusLabelProps = {
   status: boolean;
   true_text: string;
   false_text: string;
-}
+};
 
 const StatusLabel: React.FC<StatusLabelProps> = ({
   status,
@@ -15,10 +15,10 @@ const StatusLabel: React.FC<StatusLabelProps> = ({
 }) => {
   return (
     <div
-      className={`p-2 rounded-lg text-text-verba text-sm ${status ? "bg-secondary-verba" : "bg-bg-alt-verba text-text-alt-verba"}`}
+      className={`rounded-lg p-2 text-sm text-text-verba ${status ? 'bg-secondary-verba' : 'bg-bg-alt-verba text-text-alt-verba'}`}
     >
       <p
-        className={`text-xs ${status ? "text-text-verba" : "text-text-alt-verba"}`}
+        className={`text-xs ${status ? 'text-text-verba' : 'text-text-alt-verba'}`}
       >
         {status ? true_text : false_text}
       </p>

@@ -1,24 +1,22 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { CgDebug } from 'react-icons/cg';
+import { FaCheckCircle } from 'react-icons/fa';
+import { IoAddCircleSharp } from 'react-icons/io5';
+import { MdCancel, MdError } from 'react-icons/md';
 import {
-  FileData,
-  FileMap,
-  statusTextMap,
+  type FileData,
+  type FileMap,
+  type RAGComponentConfig,
   statusColorMap,
-  RAGComponentConfig,
-} from "@/app/types";
-import VerbaButton from "../Navigation/VerbaButton";
-import { MdCancel } from "react-icons/md";
-import { IoAddCircleSharp } from "react-icons/io5";
-import { CgDebug } from "react-icons/cg";
+  statusTextMap,
+} from '@/app/types';
+import VerbaButton from '../Navigation/VerbaButton';
+import ComponentView from './ComponentView';
 
-import ComponentView from "./ComponentView";
-
-import { MdError } from "react-icons/md";
-import { FaCheckCircle } from "react-icons/fa";
-
-interface BasicSettingViewProps {
+type BasicSettingViewProps = {
   selectedFileData: string | null;
   fileMap: FileMap;
   setFileMap: React.Dispatch<React.SetStateAction<FileMap>>;
@@ -36,9 +34,9 @@ interface BasicSettingViewProps {
   ) => void;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   selectedFileData,
@@ -48,15 +46,15 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   saveComponentConfig,
   setFileMap,
   blocked,
-  addStatusMessage,
+  // addStatusMessage parameter not used in this component
 }) => {
-  const [filename, setFilename] = useState("");
-  const [source, setSource] = useState("");
-  const [metadata, setMetadata] = useState("");
-  const [label, setLabel] = useState("");
+  const [filename, setFilename] = useState('');
+  const [source, setSource] = useState('');
+  const [metadata, setMetadata] = useState('');
+  const [label, setLabel] = useState('');
 
   useEffect(() => {
-    if (selectedFileData) {
+    if (selectedFileData && fileMap[selectedFileData]) {
       setFilename(fileMap[selectedFileData].filename);
       setSource(fileMap[selectedFileData].source);
       setMetadata(fileMap[selectedFileData].metadata);
@@ -64,7 +62,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   }, [fileMap, selectedFileData]);
 
   const updateFileMap = useCallback(
-    (key: "filename" | "source" | "metadata", value: string) => {
+    (key: 'filename' | 'source' | 'metadata', value: string) => {
       if (selectedFileData) {
         const newFileData: FileData = JSON.parse(
           JSON.stringify(fileMap[selectedFileData])
@@ -82,7 +80,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newFilename = e.target.value;
       setFilename(newFilename);
-      updateFileMap("filename", newFilename);
+      updateFileMap('filename', newFilename);
     },
     [updateFileMap]
   );
@@ -91,7 +89,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newSource = e.target.value;
       setSource(newSource);
-      updateFileMap("source", newSource);
+      updateFileMap('source', newSource);
     },
     [updateFileMap]
   );
@@ -100,24 +98,26 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newMetadata = e.target.value;
       setMetadata(newMetadata);
-      updateFileMap("metadata", newMetadata);
+      updateFileMap('metadata', newMetadata);
     },
     [updateFileMap]
   );
 
   const openDebugModal = () => {
-    const modal = document.getElementById("File_Debug_Modal");
+    const modal = document.getElementById('File_Debug_Modal');
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
   };
 
   const formatByteSize = (bytes: number): string => {
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    if (bytes === 0) return "0 B";
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) {
+      return '0 B';
+    }
 
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    const size = bytes / Math.pow(1024, i);
+    const size = bytes / 1024 ** i;
     return `${size.toFixed(2)} ${sizes[i]}`;
   };
 
@@ -136,6 +136,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
   const addLabel = (l: string) => {
     if (
       selectedFileData &&
+      fileMap[selectedFileData] &&
       !fileMap[selectedFileData].labels.includes(l) &&
       l.length > 0
     ) {
@@ -146,13 +147,14 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
       const newFileMap: FileMap = { ...fileMap };
       newFileMap[selectedFileData] = newFileData;
       setFileMap(newFileMap);
-      setLabel("");
+      setLabel('');
     }
   };
 
   const removeLabel = (l: string) => {
     if (
       selectedFileData &&
+      fileMap[selectedFileData] &&
       fileMap[selectedFileData].labels.includes(l) &&
       l.length > 0
     ) {
@@ -163,7 +165,7 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
       const newFileMap: FileMap = { ...fileMap };
       newFileMap[selectedFileData] = newFileData;
       setFileMap(newFileMap);
-      setLabel("");
+      setLabel('');
     }
   };
 
@@ -171,13 +173,13 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
     return Object.entries(fileData.labels).map(([key, label]) => (
       <div key={fileData.fileID + key + label}>
         <VerbaButton
-          title={label}
           className="btn-sm"
-          text_class_name="text-xs"
+          Icon={MdCancel}
           onClick={() => {
             removeLabel(label);
           }}
-          Icon={MdCancel}
+          text_class_name="text-xs"
+          title={label}
         />
       </div>
     ));
@@ -185,38 +187,41 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
 
   if (selectedFileData) {
     return (
-      <div className="flex flex-col justify-start gap-3 rounded-2xl p-1 w-full ">
-        {selectedFileData && fileMap[selectedFileData].status != "READY" && (
-          <div className="divider  text-text-alt-verba">Import Status</div>
-        )}
+      <div className="flex w-full flex-col justify-start gap-3 rounded-2xl p-1">
+        {selectedFileData &&
+          fileMap[selectedFileData] &&
+          fileMap[selectedFileData].status !== 'READY' && (
+            <div className="divider text-text-alt-verba">Import Status</div>
+          )}
 
         <div className="flex flex-col gap-3 text-text-verba">
           {selectedFileData &&
+            fileMap[selectedFileData] &&
             Object.entries(fileMap[selectedFileData].status_report).map(
               ([status, statusReport]) => (
-                <div className="flex" key={"Status" + status}>
-                  <p className="flex min-w-[8vw] gap-2 items-center text-text-verba">
-                    {statusReport.status === "DONE" && (
+                <div className="flex" key={`Status${status}`}>
+                  <p className="flex min-w-[8vw] items-center gap-2 text-text-verba">
+                    {statusReport.status === 'DONE' && (
                       <FaCheckCircle size={15} />
                     )}
-                    {statusReport.status === "ERROR" && <MdError size={15} />}
+                    {statusReport.status === 'ERROR' && <MdError size={15} />}
                     {statusTextMap[statusReport.status]}
                   </p>
                   <label
-                    className={`input flex items-center gap-2 w-full ${statusColorMap[statusReport.status]} bg-bg-verba`}
+                    className={`input flex w-full items-center gap-2 ${statusColorMap[statusReport.status]} bg-bg-verba`}
                   >
                     <input
+                      className="w-full grow"
+                      disabled={true}
                       type="text"
-                      className="grow w-full"
                       value={
-                        statusReport.took != 0
+                        statusReport.took !== 0
                           ? statusReport.message +
-                            " (" +
+                            ' (' +
                             statusReport.took +
-                            "s)"
+                            's)'
                           : statusReport.message
                       }
-                      disabled={true}
                     />
                   </label>
                 </div>
@@ -225,279 +230,289 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </div>
 
         <ComponentView
-          RAGConfig={fileMap[selectedFileData].rag_config}
+          blocked={fileMap[selectedFileData]?.block ?? false}
           component_name="Reader"
-          selectComponent={selectComponent}
-          updateConfig={updateConfig}
-          skip_component={true}
+          RAGConfig={fileMap[selectedFileData]?.rag_config ?? ({} as any)}
           saveComponentConfig={saveComponentConfig}
-          blocked={fileMap[selectedFileData].block}
+          selectComponent={selectComponent}
+          skip_component={true}
+          updateConfig={updateConfig}
         />
 
         <div className="divider text-text-alt-verba">File Settings</div>
 
         {/* Filename */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Title</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={filename}
-              onChange={handleFilenameChange}
+              className="w-full grow"
               disabled={blocked}
+              onChange={handleFilenameChange}
+              type="text"
+              value={filename}
             />
           </label>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             Add a Title to the document. If you are adding a URL, all URL will
             have a have their corresponding URL as filename.
           </p>
         </div>
 
         {/* Source */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Source Link</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={source}
-              onChange={handleSourceChange}
+              className="w-full grow"
               disabled={blocked}
+              onChange={handleSourceChange}
+              type="text"
+              value={source}
             />
           </label>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             Add a link to reference the original source of the document. You can
             access it through the Document Explorer via the View Source button
           </p>
         </div>
 
         {/* Labels */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Labels</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={label}
+              className="w-full grow"
+              disabled={blocked}
               onChange={(e) => {
                 setLabel(e.target.value);
               }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === 'Enter') {
                   e.preventDefault();
                   addLabel(label);
                 }
               }}
-              disabled={blocked}
               title={label}
+              type="text"
+              value={label}
             />
           </label>
           <VerbaButton
-            title="Add"
+            disabled={blocked ?? false}
             Icon={IoAddCircleSharp}
             onClick={() => {
               addLabel(label);
             }}
-            disabled={blocked}
+            title="Add"
           />
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             Add or remove labels for Document Filtering
           </p>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
           <div className="flex flex-wrap gap-2">
-            {renderLabelBoxes(fileMap[selectedFileData])}
+            {fileMap[selectedFileData]
+              ? renderLabelBoxes(fileMap[selectedFileData])
+              : null}
           </div>
         </div>
 
         {/* Overwrite */}
-        <div className="flex gap-2 items-center text-text-verba">
+        <div className="flex items-center gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Overwrite</p>
           <input
-            type="checkbox"
+            checked={
+              selectedFileData && fileMap[selectedFileData]
+                ? fileMap[selectedFileData].overwrite
+                : false
+            }
             className="checkbox checkbox-md"
+            disabled={blocked}
             onChange={(e) =>
               setOverwrite((e.target as HTMLInputElement).checked)
             }
-            checked={
-              selectedFileData ? fileMap[selectedFileData].overwrite : false
-            }
-            disabled={blocked}
+            type="checkbox"
           />
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             Overwrite existing documents with the same name.
           </p>
         </div>
 
-        <div className="divider  text-text-alt-verba">Metadata</div>
+        <div className="divider text-text-alt-verba">Metadata</div>
 
         {/* Metadata */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Metadata</p>
           <textarea
-            className="grow w-full textarea flex items-center gap-2 max-h-64 bg-bg-verba"
-            value={metadata}
-            onChange={handleMetadataChange}
+            className="textarea flex max-h-64 w-full grow items-center gap-2 bg-bg-verba"
             disabled={blocked}
+            onChange={handleMetadataChange}
+            value={metadata}
           />
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             Add metadata to the document to improve retrieval and generation.
             Metadata will added to the context sent to the embedding and
             generation, to influcence the results.
           </p>
         </div>
 
-        <div className="divider  text-text-alt-verba">File Information</div>
+        <div className="divider text-text-alt-verba">File Information</div>
 
         {/* Extension */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Extension</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].extension}
+              className="w-full grow"
               disabled={true}
+              type="text"
+              value={fileMap[selectedFileData]?.extension ?? ''}
             />
           </label>
         </div>
 
         {/* File Size */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">File Size</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={formatByteSize(fileMap[selectedFileData].file_size)}
+              className="w-full grow"
               disabled={true}
+              type="text"
+              value={formatByteSize(fileMap[selectedFileData]?.file_size ?? 0)}
             />
           </label>
         </div>
 
-        <div className="divider  text-text-alt-verba">Ingestion Pipeline</div>
+        <div className="divider text-text-alt-verba">Ingestion Pipeline</div>
 
         {/* Reader */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Reader</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Reader"].selected}
+              className="w-full grow"
               disabled={true}
+              type="text"
+              value={
+                fileMap[selectedFileData]?.rag_config?.Reader?.selected ?? ''
+              }
             />
           </label>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Reader"].components[
-                fileMap[selectedFileData].rag_config["Reader"].selected
-              ].description}
+              fileMap[selectedFileData]?.rag_config?.Reader?.components?.[
+                fileMap[selectedFileData]?.rag_config?.Reader?.selected ?? ''
+              ]?.description}
           </p>
         </div>
 
         {/* Chunker */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Chunker</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Chunker"].selected}
+              className="w-full grow"
               disabled={true}
+              type="text"
+              value={
+                fileMap[selectedFileData]?.rag_config?.Chunker?.selected ?? ''
+              }
             />
           </label>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Chunker"].components[
-                fileMap[selectedFileData].rag_config["Chunker"].selected
-              ].description}
+              fileMap[selectedFileData]?.rag_config?.Chunker?.components?.[
+                fileMap[selectedFileData]?.rag_config?.Chunker?.selected ?? ''
+              ]?.description}
           </p>
         </div>
 
         {/* Embedder */}
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Embedder</p>
-          <label className="input flex items-center gap-2 w-full bg-bg-verba">
+          <label className="input flex w-full items-center gap-2 bg-bg-verba">
             <input
-              type="text"
-              className="grow w-full"
-              value={fileMap[selectedFileData].rag_config["Embedder"].selected}
+              className="w-full grow"
               disabled={true}
+              type="text"
+              value={
+                fileMap[selectedFileData]?.rag_config?.Embedder?.selected ?? ''
+              }
             />
           </label>
         </div>
 
-        <div className="flex gap-2 items-center text-text-verba">
-          <p className="flex min-w-[8vw]"></p>
-          <p className="text-sm text-text-alt-verba text-start">
+        <div className="flex items-center gap-2 text-text-verba">
+          <p className="flex min-w-[8vw]" />
+          <p className="text-start text-sm text-text-alt-verba">
             {selectedFileData &&
-              fileMap[selectedFileData].rag_config["Embedder"].components[
-                fileMap[selectedFileData].rag_config["Embedder"].selected
-              ].description}
+              fileMap[selectedFileData]?.rag_config?.Embedder?.components?.[
+                fileMap[selectedFileData]?.rag_config?.Embedder?.selected ?? ''
+              ]?.description}
           </p>
         </div>
 
-        <div className="divider"></div>
+        <div className="divider" />
 
-        <div className="flex gap-2 justify-between items-center text-text-verba">
+        <div className="flex items-center justify-between gap-2 text-text-verba">
           <p className="flex min-w-[8vw]">Debug</p>
           <VerbaButton
+            className="max-w-min"
             Icon={CgDebug}
             onClick={openDebugModal}
-            className="max-w-min"
           />
         </div>
 
-        <dialog id={"File_Debug_Modal"} className="modal">
+        <dialog className="modal" id={'File_Debug_Modal'}>
           <div className="modal-box min-w-fit">
             <h3 className="font-bold text-lg">Debugging File Configuration</h3>
             <pre className="whitespace-pre-wrap text-xs">
               {selectedFileData
                 ? (() => {
                     // Create a shallow copy of the object
-                    const objCopy = { ...fileMap[selectedFileData] };
+                    const objCopy = { ...fileMap[selectedFileData]! };
                     // Delete the `content` property
-                    objCopy.content = "File Content";
+                    objCopy.content = 'File Content';
                     // Convert to a pretty-printed JSON string
                     return JSON.stringify(objCopy, null, 2);
                   })()
-                : ""}
+                : ''}
             </pre>
             <div className="modal-action">
               <form method="dialog">
-                <button className="btn text-text-verba bg-warning-verba border-none hover:bg-button-hover-verba ml-2">
+                <button className="btn ml-2 border-none bg-warning-verba text-text-verba hover:bg-button-hover-verba">
                   Close
                 </button>
               </form>
@@ -506,9 +521,8 @@ const BasicSettingView: React.FC<BasicSettingViewProps> = ({
         </dialog>
       </div>
     );
-  } else {
-    return <div></div>;
   }
+  return <div />;
 };
 
 export default BasicSettingView;

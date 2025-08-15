@@ -50,7 +50,6 @@ class CodeChunker(Chunker):
         embedder: Embedding | None = None,
         embedder_config: dict | None = None,
     ) -> list[Document]:
-
         language = config["Language"].value
         chunk_size = config["Chunk Size"].value
         chunk_overlap = config["Chunk Overlap"].value
@@ -60,26 +59,25 @@ class CodeChunker(Chunker):
         )
 
         for document in documents:
-
             # Skip if document already contains chunks
             if len(document.chunks) > 0:
                 continue
 
             char_end_i = -1
             for i, chunk in enumerate(text_splitter.split_text(document.content)):
-
                 if chunk_overlap == 0:
                     char_start_i = char_end_i + 1
                     char_end_i = char_start_i + len(chunk)
                 else:
-                    # not implemented, requires complex calculations as to whether the overlap contained a 'good' chunk
-                    char_start_i = None
-                    char_end_i = None
+                    # not implemented, requires complex calculations as to whether
+                    # the overlap contained a 'good' chunk
+                    char_start_i = 0
+                    char_end_i = len(chunk)
 
                 document.chunks.append(
                     Chunk(
                         content=chunk,
-                        chunk_id=i,
+                        chunk_id=str(i),
                         start_i=char_start_i,
                         end_i=char_end_i,
                         content_without_overlap=chunk,

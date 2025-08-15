@@ -1,27 +1,28 @@
-"use client";
+'use client';
 
-import React, { useState, useCallback } from "react";
-import InfoComponent from "../Navigation/InfoComponent";
-import { MdCancel } from "react-icons/md";
-import { IoSettingsSharp } from "react-icons/io5";
-import { VscSaveAll } from "react-icons/vsc";
-import { FaHammer } from "react-icons/fa";
+import type React from 'react';
+import { useCallback, useState } from 'react';
+import { FaHammer } from 'react-icons/fa';
+import { IoSettingsSharp } from 'react-icons/io5';
+import { MdCancel } from 'react-icons/md';
+import { VscSaveAll } from 'react-icons/vsc';
+import { updateRAGConfig } from '@/app/api';
+import type {
+  Credentials,
+  FileData,
+  FileMap,
+  RAGComponentConfig,
+  RAGConfig,
+} from '@/app/types';
+import InfoComponent from '../Navigation/InfoComponent';
+import UserModalComponent from '../Navigation/UserModal';
 
-import { updateRAGConfig } from "@/app/api";
+import VerbaButton from '../Navigation/VerbaButton';
 
-import UserModalComponent from "../Navigation/UserModal";
+import BasicSettingView from './BasicSettingView';
+import ComponentView from './ComponentView';
 
-import { FileMap, FileData } from "@/app/types";
-import { RAGConfig } from "@/app/types";
-
-import { Credentials, RAGComponentConfig } from "@/app/types";
-
-import VerbaButton from "../Navigation/VerbaButton";
-
-import BasicSettingView from "./BasicSettingView";
-import ComponentView from "./ComponentView";
-
-interface ConfigurationViewProps {
+type ConfigurationViewProps = {
   selectedFileData: string | null;
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
@@ -30,11 +31,11 @@ interface ConfigurationViewProps {
   credentials: Credentials;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
 
   setFileMap: React.Dispatch<React.SetStateAction<FileMap>>;
-}
+};
 
 const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   selectedFileData,
@@ -47,13 +48,13 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   credentials,
 }) => {
   const [selectedSetting, setSelectedSetting] = useState<
-    "Basic" | "Pipeline" | "Metadata"
-  >("Basic");
+    'Basic' | 'Pipeline' | 'Metadata'
+  >('Basic');
 
   const applyToAll = () => {
-    addStatusMessage("Applying config to all files", "INFO");
+    addStatusMessage('Applying config to all files', 'INFO');
     setFileMap((prevFileMap) => {
-      if (selectedFileData) {
+      if (selectedFileData && prevFileMap[selectedFileData]) {
         const newRAGConfig: RAGConfig = JSON.parse(
           JSON.stringify(prevFileMap[selectedFileData].rag_config)
         );
@@ -76,8 +77,8 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   };
 
   const setAsDefault = async () => {
-    addStatusMessage("Setting current config as default", "SUCCESS");
-    if (selectedFileData) {
+    addStatusMessage('Setting current config as default', 'SUCCESS');
+    if (selectedFileData && fileMap[selectedFileData]) {
       const response = await updateRAGConfig(
         fileMap[selectedFileData].rag_config,
         credentials
@@ -87,14 +88,12 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         setRAGConfig(fileMap[selectedFileData].rag_config);
         // You might want to show a success message to the user
       } else {
-        // Handle error
-        console.error("Failed to set RAG config:");
       }
     }
   };
 
   const resetConfig = () => {
-    addStatusMessage("Resetting pipeline settings", "WARNING");
+    addStatusMessage('Resetting pipeline settings', 'WARNING');
     setFileMap((prevFileMap) => {
       if (selectedFileData && RAGConfig) {
         const newFileMap: FileMap = { ...prevFileMap };
@@ -110,21 +109,21 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
   };
 
   const openApplyAllModal = () => {
-    const modal = document.getElementById("apply_setting_to_all");
+    const modal = document.getElementById('apply_setting_to_all');
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
   };
 
   const openResetModal = () => {
-    const modal = document.getElementById("reset_Setting");
+    const modal = document.getElementById('reset_Setting');
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
   };
 
   const openDefaultModal = () => {
-    const modal = document.getElementById("set_default_settings");
+    const modal = document.getElementById('set_default_settings');
     if (modal instanceof HTMLDialogElement) {
       modal.showModal();
     }
@@ -140,16 +139,38 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         if (selectedFileData) {
           const newFileMap = { ...prevFileMap };
           const selectedFile = newFileMap[selectedFileData];
+
+          // Add null check for selectedFile
+          if (!selectedFile) {
+            return prevFileMap;
+          }
+
+          // Check if rag_config and component exist
+          const ragComponent = selectedFile.rag_config?.[component_n];
+          if (
+            !ragComponent ||
+            !ragComponent.components ||
+            !ragComponent.selected
+          ) {
+            return prevFileMap;
+          }
+
           const componentConfig =
-            selectedFile.rag_config[component_n].components[
-              selectedFile.rag_config[component_n].selected
-            ].config;
+            ragComponent.components[ragComponent.selected]?.config;
+          if (!componentConfig) {
+            return prevFileMap;
+          }
 
           // Update the specific config value directly
-          if (typeof value === "string" || typeof value === "boolean") {
-            componentConfig[configTitle].value = value;
+          const configItem = componentConfig[configTitle];
+          if (!configItem) {
+            return prevFileMap;
+          }
+
+          if (typeof value === 'string' || typeof value === 'boolean') {
+            configItem.value = value;
           } else {
-            componentConfig[configTitle].values = value;
+            configItem.values = value;
           }
 
           return newFileMap;
@@ -157,18 +178,24 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         return prevFileMap;
       });
     },
-    [selectedFileData]
+    [selectedFileData, setFileMap]
   );
 
   const selectComponent = (component_n: string, selected_component: string) => {
     setFileMap((prevFileMap) => {
-      if (selectedFileData) {
+      if (selectedFileData && prevFileMap[selectedFileData]) {
         const newFileData: FileData = JSON.parse(
           JSON.stringify(prevFileMap[selectedFileData])
         );
         const newRAGConfig: RAGConfig = JSON.parse(
           JSON.stringify(prevFileMap[selectedFileData].rag_config)
         );
+
+        // Check if component exists in RAG config
+        if (!newRAGConfig[component_n]) {
+          return prevFileMap;
+        }
+
         newRAGConfig[component_n].selected = selected_component;
         newFileData.rag_config = newRAGConfig;
         const newFileMap: FileMap = { ...prevFileMap };
@@ -185,9 +212,11 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
       selected_component: string,
       component_config: RAGComponentConfig
     ) => {
-      if (!RAGConfig) return;
+      if (!RAGConfig) {
+        return;
+      }
 
-      addStatusMessage("Saving " + selected_component + " config", "SUCCESS");
+      addStatusMessage(`Saving ${selected_component} config`, 'SUCCESS');
 
       const newRAGConfig = JSON.parse(JSON.stringify(RAGConfig));
       newRAGConfig[component_n].selected = selected_component;
@@ -198,133 +227,135 @@ const ConfigurationView: React.FC<ConfigurationViewProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, credentials]
+    [RAGConfig, credentials, addStatusMessage, setRAGConfig]
   );
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex w-full flex-col gap-2">
       {/* FileSelection Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-between h-min w-full">
-        <div className="flex gap-2 justify-start ">
+      <div className="flex h-min w-full items-center justify-between gap-2 rounded-2xl bg-bg-alt-verba p-6">
+        <div className="flex justify-start gap-2">
           <InfoComponent
-            tooltip_text="Configure all import settings related to chunking, embedding, adding meta data and more. You can save made changes individually or apply them to all other files"
             display_text="Import Config"
+            tooltip_text="Configure all import settings related to chunking, embedding, adding meta data and more. You can save made changes individually or apply them to all other files"
           />
         </div>
-        <div className="flex gap-3 justify-end">
+        <div className="flex justify-end gap-3">
           <VerbaButton
-            title="Overview"
-            selected={selectedSetting === "Basic"}
-            selected_color="bg-secondary-verba"
-            onClick={() => {
-              setSelectedSetting("Basic");
-            }}
             Icon={IoSettingsSharp}
-          />
-
-          <VerbaButton
-            title="Config"
-            selected={selectedSetting === "Pipeline"}
-            selected_color="bg-secondary-verba"
             onClick={() => {
-              setSelectedSetting("Pipeline");
+              setSelectedSetting('Basic');
             }}
-            Icon={FaHammer}
+            selected={selectedSetting === 'Basic'}
+            selected_color="bg-secondary-verba"
+            title="Overview"
           />
 
           <VerbaButton
+            Icon={FaHammer}
+            onClick={() => {
+              setSelectedSetting('Pipeline');
+            }}
+            selected={selectedSetting === 'Pipeline'}
+            selected_color="bg-secondary-verba"
+            title="Config"
+          />
+
+          <VerbaButton
+            Icon={MdCancel}
             onClick={() => {
               setSelectedFileData(null);
             }}
-            Icon={MdCancel}
           />
         </div>
       </div>
 
       {/* File List */}
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 items-center h-full w-full overflow-auto">
-        {selectedSetting === "Basic" && (
+      <div className="flex h-full w-full flex-col items-center overflow-auto rounded-2xl bg-bg-alt-verba p-6">
+        {selectedSetting === 'Basic' && (
           <BasicSettingView
-            selectedFileData={selectedFileData}
             addStatusMessage={addStatusMessage}
-            fileMap={fileMap}
-            selectComponent={selectComponent}
-            updateConfig={updateConfig}
-            saveComponentConfig={saveComponentConfig}
-            setFileMap={setFileMap}
             blocked={
-              selectedFileData
-                ? fileMap[selectedFileData].block ?? false
+              selectedFileData && fileMap[selectedFileData]
+                ? (fileMap[selectedFileData].block ?? false)
                 : undefined
             }
+            fileMap={fileMap}
+            saveComponentConfig={saveComponentConfig}
+            selectComponent={selectComponent}
+            selectedFileData={selectedFileData}
+            setFileMap={setFileMap}
+            updateConfig={updateConfig}
           />
         )}
-        {selectedSetting === "Pipeline" && selectedFileData && (
-          <div className="flex flex-col gap-10 w-full">
-            <ComponentView
-              RAGConfig={fileMap[selectedFileData].rag_config}
-              component_name="Chunker"
-              selectComponent={selectComponent}
-              updateConfig={updateConfig}
-              saveComponentConfig={saveComponentConfig}
-              blocked={fileMap[selectedFileData].block}
-              skip_component={false}
-            />
-            <ComponentView
-              RAGConfig={fileMap[selectedFileData].rag_config}
-              component_name="Embedder"
-              selectComponent={selectComponent}
-              updateConfig={updateConfig}
-              saveComponentConfig={saveComponentConfig}
-              blocked={fileMap[selectedFileData].block}
-              skip_component={false}
-            />
-          </div>
-        )}
+        {selectedSetting === 'Pipeline' &&
+          selectedFileData &&
+          fileMap[selectedFileData] && (
+            <div className="flex w-full flex-col gap-10">
+              <ComponentView
+                blocked={fileMap[selectedFileData].block}
+                component_name="Chunker"
+                RAGConfig={fileMap[selectedFileData].rag_config}
+                saveComponentConfig={saveComponentConfig}
+                selectComponent={selectComponent}
+                skip_component={false}
+                updateConfig={updateConfig}
+              />
+              <ComponentView
+                blocked={fileMap[selectedFileData].block}
+                component_name="Embedder"
+                RAGConfig={fileMap[selectedFileData].rag_config}
+                saveComponentConfig={saveComponentConfig}
+                selectComponent={selectComponent}
+                skip_component={false}
+                updateConfig={updateConfig}
+              />
+            </div>
+          )}
       </div>
 
       {/* Import Footer */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-6 items-center justify-end h-min w-full">
-        <div className="flex gap-3 justify-end">
+      <div className="flex h-min w-full items-center justify-end gap-2 rounded-2xl bg-bg-alt-verba p-6">
+        <div className="flex justify-end gap-3">
           <VerbaButton
-            title="Apply to All"
-            onClick={openApplyAllModal}
             Icon={VscSaveAll}
+            onClick={openApplyAllModal}
+            title="Apply to All"
           />
 
           <VerbaButton
-            title="Save Config"
-            onClick={openDefaultModal}
             Icon={IoSettingsSharp}
+            onClick={openDefaultModal}
+            title="Save Config"
           />
 
-          <VerbaButton title="Reset" onClick={openResetModal} Icon={MdCancel} />
+          <VerbaButton Icon={MdCancel} onClick={openResetModal} title="Reset" />
         </div>
       </div>
       <UserModalComponent
-        modal_id={"apply_setting_to_all"}
-        title={"Apply Pipeline Settings"}
-        text={"Apply Pipeline Settings to all files?"}
+        modal_id={'apply_setting_to_all'}
+        text={'Apply Pipeline Settings to all files?'}
+        title={'Apply Pipeline Settings'}
+        triggerAccept={applyToAll}
         triggerString="Apply"
         triggerValue={null}
-        triggerAccept={applyToAll}
       />
       <UserModalComponent
-        modal_id={"reset_Setting"}
-        title={"Reset Setting"}
-        text={"Reset pipeline settings of this file?"}
+        modal_id={'reset_Setting'}
+        text={'Reset pipeline settings of this file?'}
+        title={'Reset Setting'}
+        triggerAccept={resetConfig}
         triggerString="Reset"
         triggerValue={null}
-        triggerAccept={resetConfig}
       />
 
       <UserModalComponent
-        modal_id={"set_default_settings"}
-        title={"Set Default"}
-        text={"Set current pipeline settings as default for future files?"}
+        modal_id={'set_default_settings'}
+        text={'Set current pipeline settings as default for future files?'}
+        title={'Set Default'}
+        triggerAccept={setAsDefault}
         triggerString="Set"
         triggerValue={null}
-        triggerAccept={setAsDefault}
       />
     </div>
   );

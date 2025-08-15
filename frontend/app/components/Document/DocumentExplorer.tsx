@@ -1,46 +1,55 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { FaInfoCircle } from "react-icons/fa";
-import VectorView from "./VectorView";
-import ChunkView from "./ChunkView";
-import InfoComponent from "../Navigation/InfoComponent";
-
-import DocumentMetaView from "./DocumentMetaView";
-
-import { MdCancel } from "react-icons/md";
-import { MdContentPaste } from "react-icons/md";
-import { MdContentCopy } from "react-icons/md";
-import { TbVectorTriangle } from "react-icons/tb";
-import ContentView from "./ContentView";
-import { IoMdAddCircle } from "react-icons/io";
-import { FaExternalLinkAlt } from "react-icons/fa";
-import {
-  VerbaDocument,
-  DocumentPayload,
-  Credentials,
+'use client';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { FaExternalLinkAlt, FaInfoCircle } from 'react-icons/fa';
+import { IoMdAddCircle } from 'react-icons/io';
+import { MdCancel, MdContentCopy, MdContentPaste } from 'react-icons/md';
+import { TbVectorTriangle } from 'react-icons/tb';
+import { fetchSelectedDocument } from '@/app/api';
+import type {
   ChunkScore,
-  Theme,
+  Credentials,
   DocumentFilter,
-} from "@/app/types";
+  DocumentPayload,
+  Theme,
+  VerbaDocument,
+} from '@/app/types';
+import InfoComponent from '../Navigation/InfoComponent';
+import VerbaButton from '../Navigation/VerbaButton';
+import ChunkView from './ChunkView';
+import ContentView from './ContentView';
+import DocumentMetaView from './DocumentMetaView';
 
-import VerbaButton from "../Navigation/VerbaButton";
+// Dynamic import for optimized VectorView with lazy loading
+const VectorView = dynamic(() => import('./VectorViewDeck'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[45vh] w-full items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+    </div>
+  ),
+}) as React.ComponentType<{
+  credentials: Credentials;
+  selectedDocument: string | null;
+  chunkScores?: ChunkScore[];
+  production: 'Local' | 'Demo' | 'Production';
+}>;
 
-import { fetchSelectedDocument } from "@/app/api";
-
-interface DocumentExplorerProps {
+type DocumentExplorerProps = {
   selectedDocument: string | null;
   setSelectedDocument: (c: string | null) => void;
   chunkScores?: ChunkScore[];
   credentials: Credentials;
   selectedTheme: Theme;
-  production: "Local" | "Demo" | "Production";
+  production: 'Local' | 'Demo' | 'Production';
   documentFilter: DocumentFilter[];
   setDocumentFilter: React.Dispatch<React.SetStateAction<DocumentFilter[]>>;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
   credentials,
@@ -54,26 +63,13 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
   addStatusMessage,
 }) => {
   const [selectedSetting, setSelectedSetting] = useState<
-    "Content" | "Chunks" | "Metadata" | "Config" | "Vector Space" | "Graph"
-  >("Content");
+    'Content' | 'Chunks' | 'Metadata' | 'Config' | 'Vector Space' | 'Graph'
+  >('Content');
 
-  const [isFetching, setIsFetching] = useState(false);
+  const [, setIsFetching] = useState(false);
   const [document, setDocument] = useState<VerbaDocument | null>(null);
 
-  useEffect(() => {
-    if (selectedDocument) {
-      handleFetchSelectedDocument();
-    } else {
-      setDocument(null);
-    }
-  }, [selectedDocument]);
-
-  const handleSourceClick = (url: string) => {
-    // Open a new tab with the specified URL
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
-  const handleFetchSelectedDocument = async () => {
+  const handleFetchSelectedDocument = useCallback(async () => {
     try {
       setIsFetching(true);
 
@@ -83,8 +79,7 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
       );
 
       if (data) {
-        if (data.error !== "") {
-          console.error(data.error);
+        if (data.error !== '') {
           setIsFetching(false);
           setDocument(null);
           setSelectedDocument(null);
@@ -93,49 +88,61 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
           setIsFetching(false);
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch document:", error);
+    } catch (_error) {
       setIsFetching(false);
     }
+  }, [selectedDocument, credentials, setSelectedDocument]);
+
+  useEffect(() => {
+    if (selectedDocument) {
+      handleFetchSelectedDocument();
+    } else {
+      setDocument(null);
+    }
+  }, [handleFetchSelectedDocument, selectedDocument]);
+
+  const handleSourceClick = (url: string) => {
+    // Open a new tab with the specified URL
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   if (!selectedDocument) {
-    return <div></div>;
+    return <div />;
   }
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex w-full flex-col gap-2">
       {/* Search Header */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-end lg:justify-between h-min w-full">
-        <div className="hidden lg:flex gap-2 justify-start ">
+      <div className="flex h-min w-full items-center justify-end gap-2 rounded-2xl bg-bg-alt-verba p-3 lg:justify-between">
+        <div className="hidden justify-start gap-2 lg:flex">
           <InfoComponent
+            display_text={document ? document.title : 'Loading...'}
             tooltip_text="Inspect your all information about your document, such as chunks, metadata and more."
-            display_text={document ? document.title : "Loading..."}
           />
         </div>
-        <div className="flex gap-3 justify-end">
+        <div className="flex justify-end gap-3">
           <VerbaButton
-            title="Content"
             Icon={MdContentPaste}
-            onClick={() => setSelectedSetting("Content")}
-            selected={selectedSetting === "Content"}
+            onClick={() => setSelectedSetting('Content')}
+            selected={selectedSetting === 'Content'}
             selected_color="bg-secondary-verba"
+            title="Content"
           />
 
           <VerbaButton
-            title="Chunks"
             Icon={MdContentCopy}
-            onClick={() => setSelectedSetting("Chunks")}
-            selected={selectedSetting === "Chunks"}
+            onClick={() => setSelectedSetting('Chunks')}
+            selected={selectedSetting === 'Chunks'}
             selected_color="bg-secondary-verba"
+            title="Chunks"
           />
 
           <VerbaButton
-            title="Vector"
             Icon={TbVectorTriangle}
-            onClick={() => setSelectedSetting("Vector Space")}
-            selected={selectedSetting === "Vector Space"}
+            onClick={() => setSelectedSetting('Vector Space')}
+            selected={selectedSetting === 'Vector Space'}
             selected_color="bg-secondary-verba"
+            title="Vector"
           />
 
           <VerbaButton
@@ -148,35 +155,35 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
       </div>
 
       {/* Document List */}
-      <div className="bg-bg-alt-verba rounded-2xl flex flex-col p-6 h-full w-full overflow-y-auto overflow-x-hidden">
-        {selectedSetting === "Content" && (
+      <div className="flex h-full w-full flex-col overflow-y-auto overflow-x-hidden rounded-2xl bg-bg-alt-verba p-6">
+        {selectedSetting === 'Content' && (
           <ContentView
-            selectedTheme={selectedTheme}
+            {...(chunkScores && { chunkScores })}
+            credentials={credentials}
             document={document}
-            credentials={credentials}
             selectedDocument={selectedDocument}
-            chunkScores={chunkScores}
-          />
-        )}
-
-        {selectedSetting === "Chunks" && (
-          <ChunkView
             selectedTheme={selectedTheme}
-            credentials={credentials}
-            selectedDocument={selectedDocument}
           />
         )}
 
-        {selectedSetting === "Vector Space" && (
+        {selectedSetting === 'Chunks' && (
+          <ChunkView
+            credentials={credentials}
+            selectedDocument={selectedDocument}
+            selectedTheme={selectedTheme}
+          />
+        )}
+
+        {selectedSetting === 'Vector Space' && (
           <VectorView
+            {...(chunkScores && { chunkScores })}
             credentials={credentials}
-            selectedDocument={selectedDocument}
-            chunkScores={chunkScores}
             production={production}
+            selectedDocument={selectedDocument}
           />
         )}
 
-        {selectedSetting === "Metadata" && (
+        {selectedSetting === 'Metadata' && (
           <DocumentMetaView
             credentials={credentials}
             selectedDocument={selectedDocument}
@@ -185,55 +192,55 @@ const DocumentExplorer: React.FC<DocumentExplorerProps> = ({
       </div>
 
       {/* Import Footer */}
-      <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-between h-min w-full">
+      <div className="flex h-min w-full items-center justify-between gap-2 rounded-2xl bg-bg-alt-verba p-3">
         <div className="flex gap-3">
           {documentFilter.some(
             (filter) => filter.uuid === selectedDocument
           ) && (
             <VerbaButton
-              title="Delete from Chat"
               Icon={MdCancel}
-              selected={true}
-              selected_color="bg-warning-verba"
               onClick={() => {
                 setDocumentFilter(
                   documentFilter.filter((f) => f.uuid !== selectedDocument)
                 );
-                addStatusMessage("Removed document from Chat", "INFO");
+                addStatusMessage('Removed document from Chat', 'INFO');
               }}
+              selected={true}
+              selected_color="bg-warning-verba"
+              title="Delete from Chat"
             />
           )}
           {!documentFilter.some((filter) => filter.uuid === selectedDocument) &&
             document && (
               <VerbaButton
-                title="Add to Chat"
                 Icon={IoMdAddCircle}
                 onClick={() => {
                   setDocumentFilter([
                     ...documentFilter,
                     { uuid: selectedDocument, title: document.title },
                   ]);
-                  addStatusMessage("Added document to Chat", "SUCCESS");
+                  addStatusMessage('Added document to Chat', 'SUCCESS');
                 }}
+                title="Add to Chat"
               />
             )}
         </div>
         <div className="flex gap-3">
           {selectedDocument && document && document.source && (
             <VerbaButton
-              title="Go To Source"
               Icon={FaExternalLinkAlt}
               onClick={() => {
                 handleSourceClick(document.source);
               }}
+              title="Go To Source"
             />
           )}
           <VerbaButton
-            title="Document Info"
             Icon={FaInfoCircle}
-            onClick={() => setSelectedSetting("Metadata")}
-            selected={selectedSetting === "Metadata"}
+            onClick={() => setSelectedSetting('Metadata')}
+            selected={selectedSetting === 'Metadata'}
             selected_color="bg-secondary-verba"
+            title="Document Info"
           />
         </div>
       </div>

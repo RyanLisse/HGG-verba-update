@@ -1,24 +1,19 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import type React from 'react';
+import { useState } from 'react';
+import { BiSolidCommentError } from 'react-icons/bi';
+import { FaPaintBrush } from 'react-icons/fa';
+import { IoChatboxEllipsesSharp, IoLogOutSharp } from 'react-icons/io5';
+import { RiAdminFill } from 'react-icons/ri';
+import type { Credentials, Theme, Themes } from '@/app/types';
+import InfoComponent from '../Navigation/InfoComponent';
+import VerbaButton from '../Navigation/VerbaButton';
+import InfoView from './InfoView';
+import SettingsComponent from './SettingsComponent';
+import SuggestionView from './SuggestionView';
 
-import { RiAdminFill } from "react-icons/ri";
-import { FaPaintBrush } from "react-icons/fa";
-import { BiSolidCommentError } from "react-icons/bi";
-import { IoLogOutSharp } from "react-icons/io5";
-import { IoChatboxEllipsesSharp } from "react-icons/io5";
-
-import VerbaButton from "../Navigation/VerbaButton";
-
-import { Theme, Themes, Credentials } from "@/app/types";
-
-import SettingsComponent from "./SettingsComponent";
-
-import InfoComponent from "../Navigation/InfoComponent";
-import SuggestionView from "./SuggestionView";
-import InfoView from "./InfoView";
-
-interface SettingsViewProps {
+type SettingsViewProps = {
   selectedTheme: Theme;
   setSelectedTheme: React.Dispatch<React.SetStateAction<Theme>>;
   themes: Themes;
@@ -26,9 +21,9 @@ interface SettingsViewProps {
   credentials: Credentials;
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
-}
+};
 
 const SettingsView: React.FC<SettingsViewProps> = ({
   selectedTheme,
@@ -39,87 +34,87 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   credentials,
 }) => {
   const [settingMode, setSettingMode] = useState<
-    "INFO" | "ADMIN" | "THEME" | "SUGGESTIONS" | "CACHE"
-  >("INFO");
+    'INFO' | 'ADMIN' | 'THEME' | 'SUGGESTIONS' | 'CACHE'
+  >('INFO');
 
   return (
-    <div className="flex justify-center gap-3 h-[80vh] ">
-      <div className={`w-1/3 flex`}>
-        <div className="flex flex-col gap-2 w-full">
-          <div className="bg-bg-alt-verba rounded-2xl flex gap-2 p-3 items-center justify-between h-min w-full">
-            <div className="flex gap-2 justify-start ">
+    <div className="flex h-[80vh] justify-center gap-3">
+      <div className={'flex w-1/3'}>
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex h-min w-full items-center justify-between gap-2 rounded-2xl bg-bg-alt-verba p-3">
+            <div className="flex justify-start gap-2">
               <InfoComponent
+                display_text={'Settings'}
                 tooltip_text="Customize Verba's Theme, reset collections, logout or report issues."
-                display_text={"Settings"}
               />
             </div>
           </div>
-          <div className="bg-bg-alt-verba gap-2 rounded-2xl flex flex-col p-3 w-full overflow-y-auto overflow-x-hidden">
+          <div className="flex w-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-bg-alt-verba p-3">
             <VerbaButton
-              title="Admin"
-              onClick={() => setSettingMode("INFO")}
-              selected={settingMode === "INFO"}
-              selected_color="bg-secondary-verba"
               Icon={RiAdminFill}
+              onClick={() => setSettingMode('INFO')}
+              selected={settingMode === 'INFO'}
+              selected_color="bg-secondary-verba"
+              title="Admin"
             />
             <VerbaButton
-              title="Customize Theme"
-              onClick={() => setSettingMode("THEME")}
-              selected={settingMode === "THEME"}
-              selected_color="bg-secondary-verba"
               Icon={FaPaintBrush}
+              onClick={() => setSettingMode('THEME')}
+              selected={settingMode === 'THEME'}
+              selected_color="bg-secondary-verba"
+              title="Customize Theme"
             />
             <VerbaButton
-              title="Manage Suggestions"
-              onClick={() => setSettingMode("SUGGESTIONS")}
-              selected={settingMode === "SUGGESTIONS"}
-              selected_color="bg-secondary-verba"
               Icon={IoChatboxEllipsesSharp}
+              onClick={() => setSettingMode('SUGGESTIONS')}
+              selected={settingMode === 'SUGGESTIONS'}
+              selected_color="bg-secondary-verba"
+              title="Manage Suggestions"
             />
           </div>
-          <div className="bg-bg-alt-verba gap-2 rounded-2xl flex flex-col p-6 w-full overflow-y-auto overflow-x-hidden">
+          <div className="flex w-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-bg-alt-verba p-6">
             <VerbaButton
-              title="Logout"
-              onClick={() => window.location.reload()}
               Icon={IoLogOutSharp}
+              onClick={() => window.location.reload()}
+              title="Logout"
             />
             <VerbaButton
-              title="Report Issue"
+              Icon={BiSolidCommentError}
               onClick={() =>
                 window.open(
-                  "https://github.com/weaviate/Verba/issues/new/choose",
-                  "_blank"
+                  'https://github.com/weaviate/Verba/issues/new/choose',
+                  '_blank'
                 )
               }
-              Icon={BiSolidCommentError}
+              title="Report Issue"
             />
           </div>
         </div>
       </div>
 
-      <div className={`w-2/3 flex`}>
-        <div className="flex flex-col gap-2 w-full">
-          <div className="bg-bg-alt-verba gap-2 rounded-2xl flex flex-col p-6 h-full w-full overflow-y-auto overflow-x-hidden">
-            {settingMode === "THEME" && (
+      <div className={'flex w-2/3'}>
+        <div className="flex w-full flex-col gap-2">
+          <div className="flex h-full w-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-2xl bg-bg-alt-verba p-6">
+            {settingMode === 'THEME' && (
               <SettingsComponent
-                themes={themes}
-                credentials={credentials}
-                setThemes={setThemes}
-                setSelectedTheme={setSelectedTheme}
-                selectedTheme={selectedTheme}
                 addStatusMessage={addStatusMessage}
+                credentials={credentials}
+                selectedTheme={selectedTheme}
+                setSelectedTheme={setSelectedTheme}
+                setThemes={setThemes}
+                themes={themes}
               />
             )}
-            {settingMode === "INFO" && (
+            {settingMode === 'INFO' && (
               <InfoView
                 addStatusMessage={addStatusMessage}
                 credentials={credentials}
               />
             )}
-            {settingMode === "SUGGESTIONS" && (
+            {settingMode === 'SUGGESTIONS' && (
               <SuggestionView
-                credentials={credentials}
                 addStatusMessage={addStatusMessage}
+                credentials={credentials}
               />
             )}
           </div>

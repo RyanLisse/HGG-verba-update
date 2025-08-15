@@ -10,6 +10,7 @@ from goldenverba.components.util import get_environment, get_token
 
 load_dotenv()
 
+
 class UpstageGenerator(Generator):
     """
     Upstage Generator.
@@ -39,7 +40,10 @@ class UpstageGenerator(Generator):
             self.config["API Key"] = InputConfig(
                 type="password",
                 value="",
-                description="You can set your Upstage API Key here or set it as environment variable `UPSTAGE_API_KEY`",
+                description=(
+                    "You can set your Upstage API Key here or set it as environment "
+                    "variable `UPSTAGE_API_KEY`"
+                ),
                 values=[],
             )
         if os.getenv("UPSTAGE_BASE_URL") is None:
@@ -55,8 +59,10 @@ class UpstageGenerator(Generator):
         config: dict,
         query: str,
         context: str,
-        conversation: list[dict] = [],
+        conversation: list[dict] | None = None,
     ):
+        if conversation is None:
+            conversation = []
         system_message = config.get("System Message").value
         model = config.get("Model", {"value": self.DEFAULT_MODEL}).value
         api_key = get_environment(
@@ -79,31 +85,33 @@ class UpstageGenerator(Generator):
             "stream": True,
         }
 
-        async with httpx.AsyncClient() as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient() as client,
+            client.stream(
                 "POST",
                 f"{base_url}/chat/completions",
                 json=data,
                 headers=headers,
                 timeout=None,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        if line.strip() == "data: [DONE]":
-                            break
-                        json_line = json.loads(line[6:])
-                        choice = json_line["choices"][0]
-                        if "delta" in choice and "content" in choice["delta"]:
-                            yield {
-                                "message": choice["delta"]["content"],
-                                "finish_reason": choice.get("finish_reason"),
-                            }
-                        elif "finish_reason" in choice:
-                            yield {
-                                "message": "",
-                                "finish_reason": choice["finish_reason"],
-                            }
+            ) as response,
+        ):
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if line.startswith("data: "):
+                    if line.strip() == "data: [DONE]":
+                        break
+                    json_line = json.loads(line[6:])
+                    choice = json_line["choices"][0]
+                    if "delta" in choice and "content" in choice["delta"]:
+                        yield {
+                            "message": choice["delta"]["content"],
+                            "finish_reason": choice.get("finish_reason"),
+                        }
+                    elif "finish_reason" in choice:
+                        yield {
+                            "message": "",
+                            "finish_reason": choice["finish_reason"],
+                        }
 
     def prepare_messages(
         self, query: str, context: str, conversation: list[dict], system_message: str
@@ -133,7 +141,10 @@ class UpstageGenerator(Generator):
         messages.append(
             {
                 "role": "user",
-                "content": f"Answer this query: '{query}' with this provided context: {context}",
+                "content": (
+                    f"Answer this query: '{query}' with this provided context: "
+                    f"{context}"
+                ),
             }
         )
 

@@ -1,26 +1,27 @@
-"use client";
+'use client';
 
-import React, { useCallback } from "react";
-import { MdCancel } from "react-icons/md";
-import { IoSettingsSharp } from "react-icons/io5";
-import { RAGConfig, RAGComponentConfig, Credentials } from "@/app/types";
-import { updateRAGConfig } from "@/app/api";
-import ComponentView from "../Ingestion/ComponentView";
+import type React from 'react';
+import { useCallback } from 'react';
+import { IoSettingsSharp } from 'react-icons/io5';
+import { MdCancel } from 'react-icons/md';
+import { updateRAGConfig } from '@/app/api';
+import type { Credentials, RAGComponentConfig, RAGConfig } from '@/app/types';
+import ComponentView from '../Ingestion/ComponentView';
 
-import VerbaButton from "../Navigation/VerbaButton";
+import VerbaButton from '../Navigation/VerbaButton';
 
-interface ChatConfigProps {
+type ChatConfigProps = {
   RAGConfig: RAGConfig | null;
   setRAGConfig: React.Dispatch<React.SetStateAction<RAGConfig | null>>;
   onSave: () => void; // New parameter for handling save
   onReset: () => void; // New parameter for handling reset
   addStatusMessage: (
     message: string,
-    type: "INFO" | "WARNING" | "SUCCESS" | "ERROR"
+    type: 'INFO' | 'WARNING' | 'SUCCESS' | 'ERROR'
   ) => void;
   credentials: Credentials;
-  production: "Local" | "Demo" | "Production";
-}
+  production: 'Local' | 'Demo' | 'Production';
+};
 
 const ChatConfig: React.FC<ChatConfigProps> = ({
   RAGConfig,
@@ -37,16 +38,22 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
     value: string | boolean | string[]
   ) => {
     setRAGConfig((prevRAGConfig) => {
-      if (prevRAGConfig) {
+      if (prevRAGConfig?.[component_n]) {
         const newRAGConfig = { ...prevRAGConfig };
-        if (typeof value === "string" || typeof value === "boolean") {
-          newRAGConfig[component_n].components[
-            newRAGConfig[component_n].selected
-          ].config[configTitle].value = value;
-        } else {
-          newRAGConfig[component_n].components[
-            newRAGConfig[component_n].selected
-          ].config[configTitle].values = value;
+        const component = newRAGConfig[component_n];
+        if (
+          component?.components &&
+          component.selected &&
+          component.components[component.selected]
+        ) {
+          const selectedComponent = component.components[component.selected];
+          if (selectedComponent?.config?.[configTitle]) {
+            if (typeof value === 'string' || typeof value === 'boolean') {
+              selectedComponent.config[configTitle].value = value;
+            } else {
+              selectedComponent.config[configTitle].values = value;
+            }
+          }
         }
         return newRAGConfig;
       }
@@ -58,7 +65,9 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
     setRAGConfig((prevRAGConfig) => {
       if (prevRAGConfig) {
         const newRAGConfig = { ...prevRAGConfig };
-        newRAGConfig[component_n].selected = selected_component;
+        if (newRAGConfig[component_n]) {
+          newRAGConfig[component_n].selected = selected_component;
+        }
         return newRAGConfig;
       }
       return prevRAGConfig;
@@ -71,9 +80,11 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
       selected_component: string,
       component_config: RAGComponentConfig
     ) => {
-      if (!RAGConfig) return;
+      if (!RAGConfig) {
+        return;
+      }
 
-      addStatusMessage("Saving " + selected_component + " Config", "SUCCESS");
+      addStatusMessage(`Saving ${selected_component} Config`, 'SUCCESS');
 
       const newRAGConfig = JSON.parse(JSON.stringify(RAGConfig));
       newRAGConfig[component_n].selected = selected_component;
@@ -84,61 +95,60 @@ const ChatConfig: React.FC<ChatConfigProps> = ({
         setRAGConfig(newRAGConfig);
       }
     },
-    [RAGConfig, credentials]
+    [RAGConfig, addStatusMessage, credentials, setRAGConfig]
   );
 
   if (RAGConfig) {
     return (
-      <div className="flex flex-col justify-start rounded-2xl w-full p-4 ">
-        <div className="sticky flex flex-col gap-2 w-full top-0 z-20 justify-end">
+      <div className="flex w-full flex-col justify-start rounded-2xl p-4">
+        <div className="sticky top-0 z-20 flex w-full flex-col justify-end gap-2">
           {/* Add Save and Reset buttons */}
-          <div className="flex justify-end w-full gap-2 p-4 bg-bg-alt-verba rounded-lg">
+          <div className="flex w-full justify-end gap-2 rounded-lg bg-bg-alt-verba p-4">
             <VerbaButton
+              disabled={production === 'Demo'}
               Icon={IoSettingsSharp}
-              title="Save Config"
               onClick={onSave}
-              disabled={production == "Demo"}
+              title="Save Config"
             />
             <VerbaButton
+              disabled={production === 'Demo'}
               Icon={MdCancel}
-              title="Reset"
               onClick={onReset}
-              disabled={production == "Demo"}
+              title="Reset"
             />
           </div>
         </div>
 
-        <div className="flex flex-col justify-start gap-3 rounded-2xl w-full p-6 ">
+        <div className="flex w-full flex-col justify-start gap-3 rounded-2xl p-6">
           <ComponentView
-            RAGConfig={RAGConfig}
+            blocked={production === 'Demo'}
             component_name="Embedder"
+            RAGConfig={RAGConfig}
+            saveComponentConfig={saveComponentConfig}
             selectComponent={selectComponent}
             updateConfig={updateConfig}
-            saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
           />
           <ComponentView
-            RAGConfig={RAGConfig}
+            blocked={production === 'Demo'}
             component_name="Generator"
+            RAGConfig={RAGConfig}
+            saveComponentConfig={saveComponentConfig}
             selectComponent={selectComponent}
             updateConfig={updateConfig}
-            saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
           />
           <ComponentView
-            RAGConfig={RAGConfig}
+            blocked={production === 'Demo'}
             component_name="Retriever"
+            RAGConfig={RAGConfig}
+            saveComponentConfig={saveComponentConfig}
             selectComponent={selectComponent}
             updateConfig={updateConfig}
-            saveComponentConfig={saveComponentConfig}
-            blocked={production == "Demo"}
           />
         </div>
       </div>
     );
-  } else {
-    return <div></div>;
   }
+  return <div />;
 };
 
 export default ChatConfig;
